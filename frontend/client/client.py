@@ -40,13 +40,13 @@ class Client:
     def __init__(self, path_to_private_key, path_to_foreing_public_key, password):
         self.asym_cipher = AsymCipher()
 
-        self.asym_cipher.private_key = AsymCipher.load_private_key(path_to_private_key, password)
+        self.asym_cipher.private_key = AsymCipher.load_private_key(path_to_private_key, bytes(password, 'utf-8'))
         self.asym_cipher.foreign_public_key = AsymCipher.load_public_key(path_to_foreing_public_key)
-
+        
         self.sym_cipher = SymCipher()
 
 
-    def get_bytes_to_send(self, message):
+    def get_bytes_to_send(self, message: bytes):
         self.sym_cipher.gen_key_iv()
         
         encrypted_msg = self.sym_cipher.encrypt(message)    

@@ -17,13 +17,13 @@ class SymCipher:
     def gen_cipher(self):
         self.cipher = Cipher(algorithms.AES(self.key), modes.CBC(self.iv))
 
-    def encrypt(self, data):
+    def encrypt(self, data: bytes):
         encryptor = self.cipher.encryptor()
 
         return encryptor.update(data) + encryptor.finalize()
         
 
-    def decrypt(self, ciphertext):
+    def decrypt(self, ciphertext: bytes):
         decryptor = self.cipher.decryptor()
         
         return decryptor.update(ciphertext) + decryptor.finalize()
