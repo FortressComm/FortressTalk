@@ -18,49 +18,50 @@ class Frame:
 
     def __init__(self, msg, keyIv):
         self.msg = None
-        self.symCipher = None
+        self.sym_cipher = None
         
-    def toBytes(self):
+    
+    def to_bytes(self):
         return json.dumps({
             "msg": self.msg,
-            "symCipher": self.symCipher
+            "symCipher": self.sym_cipher
         }).encode()
     
-    def fromBytes(bytes):
+    def from_bytes(bytes):
         frame = Frame()
-        objectDict = json.loads(bytes)
-        frame.key = objectDict['msg']
-        frame.symCipher = objectDict['symCipher']
+        object_dict = json.loads(bytes)
+        frame.key = object_dict['msg']
+        frame.sym_cipher = object_dict['symCipher']
         
         return frame
 
 class Client:
 
     def __init__(self, path_to_private_key, path_to_foreing_public_key, password):
-        self.asymCipher = AsymCipher()
+        self.asym_cipher = AsymCipher()
 
-        self.asymCipher.private_key = AsymCipher.load_private_key(path_to_private_key, password)
-        self.asymCipher.foreign_public_key = AsymCipher.load_public_key(path_to_foreing_public_key)
+        self.asym_cipher.private_key = AsymCipher.load_private_key(path_to_private_key, password)
+        self.asym_cipher.foreign_public_key = AsymCipher.load_public_key(path_to_foreing_public_key)
 
-        self.symCipher = SymCipher()
+        self.sym_cipher = SymCipher()
 
 
     def get_bytes_to_send(self, message):
-        self.symCipher.gen_key_iv()
+        self.sym_cipher.gen_key_iv()
         
-        encryptedMsg = self.symCipher.encrypt(message)    
-        encryptedSymCipher = self.asymCipher.encrypt(self.symCipher.toBytes())
-        frame = Frame(encryptedMsg, encryptedSymCipher)
+        encrypted_msg = self.sym_cipher.encrypt(message)    
+        encrypted_sym_cipher = self.asym_cipher.encrypt(self.sym_cipher.to_bytes())
+        frame = Frame(encrypted_msg, encrypted_sym_cipher)
         
-        return frame.toBytes()
+        return frame.to_bytes()
 
     def get_recieved_msg(self, bytes):
-        frame = Frame.fromBytes(bytes)
+        frame = Frame.from_bytes(bytes)
 
-        encryptedMsg = frame.msg
-        encryptedSymCipher = frame.symCipher
+        encrypted_msg = frame.msg
+        encrypted_sym_cipher = frame.sym_cipher
 
-        symCipher = SymCipher.fromBytes(self.asymCipher.decrypt(encryptedSymCipher))
-        msg = symCipher.decrypt(encryptedMsg).decode()
+        sym_cipher = SymCipher.from_bytes(self.asym_cipher.decrypt(encrypted_sym_cipher))
+        msg = sym_cipher.decrypt(encrypted_msg).decode()
 
         return msg

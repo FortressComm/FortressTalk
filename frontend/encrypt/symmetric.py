@@ -28,16 +28,17 @@ class SymCipher:
         
         return decryptor.update(ciphertext) + decryptor.finalize()
     
-    def toBytes(self):
+    def to_bytes(self):
         return json.dumps({
             "symKey": self.key,
             "iv": self.iv
         }).encode()
     
-    def fromBytes(bytes):
-        symCipher = SymCipher()
+    def from_bytes(bytes):
+        sym_cipher = SymCipher()
         objectDict = json.loads(bytes)
-        symCipher.key = objectDict['symKey']
-        symCipher.iv = objectDict['iv']
-        symCipher.gen_cipher()
-        return symCipher
+        sym_cipher.key = objectDict['symKey']
+        sym_cipher.iv = objectDict['iv']
+        sym_cipher.gen_cipher()
+        
+        return sym_cipher
