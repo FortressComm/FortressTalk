@@ -1,5 +1,6 @@
 import os
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives import padding
 import json
 
 class SymCipher:
@@ -8,6 +9,7 @@ class SymCipher:
         self.key = None
         self.iv = None
         self.cipher = None
+        self.block_size = None
 
     def gen_key_iv(self):
         self.key = os.urandom(32)
@@ -16,22 +18,28 @@ class SymCipher:
 
     def gen_cipher(self):
         self.cipher = Cipher(algorithms.AES(self.key), modes.CBC(self.iv))
+        self.block_size = algorithms.AES.block_size
 
     def encrypt(self, data: bytes):
+        padder = padding.PKCS7(self.block_size).padder()
+        padded_data = padder.update(data) + padder.finalize()
+        
         encryptor = self.cipher.encryptor()
 
-        return encryptor.update(data) + encryptor.finalize()
+        return encryptor.update(padded_data) + encryptor.finalize()
         
 
     def decrypt(self, ciphertext: bytes):
         decryptor = self.cipher.decryptor()
-        
-        return decryptor.update(ciphertext) + decryptor.finalize()
+        data = decryptor.update(ciphertext) + decryptor.finalize()
+        unpadder = padding.PKCS7(self.block_size).unpadder()
+
+        return unpadder.update(data) + unpadder.finalize()
     
     def to_bytes(self):
         return json.dumps({
-            "symKey": self.key,
-            "iv": self.iv
+            "symKey": str(self.key),
+            "iv": str(self.iv)
         }).encode()
     
     def from_bytes(bytes):

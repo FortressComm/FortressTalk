@@ -16,22 +16,20 @@ import json
 
 class Frame:
 
-    def __init__(self, msg, keyIv):
-        self.msg = None
-        self.sym_cipher = None
+    def __init__(self, msg: bytes, sym_cipher: bytes):
+        self.msg = msg
+        self.sym_cipher = sym_cipher
         
     
     def to_bytes(self):
         return json.dumps({
-            "msg": self.msg,
-            "symCipher": self.sym_cipher
+            "msg": str(self.msg),
+            "symCipher": str(self.sym_cipher)
         }).encode()
     
     def from_bytes(bytes):
-        frame = Frame()
         object_dict = json.loads(bytes)
-        frame.key = object_dict['msg']
-        frame.sym_cipher = object_dict['symCipher']
+        frame = Frame(object_dict['msg'], object_dict['symCipher'])
         
         return frame
 

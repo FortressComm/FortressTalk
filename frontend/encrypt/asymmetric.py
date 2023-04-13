@@ -14,7 +14,7 @@ class AsymCipher:
                 label=None
             )      
     
-    def encrypt(self, data):
+    def encrypt(self, data: bytes):
         ciphertext = self.foreign_public_key.encrypt(
             data,
             self.padd
@@ -22,7 +22,7 @@ class AsymCipher:
 
         return ciphertext
     
-    def decrypt(self, ciphertext):
+    def decrypt(self, ciphertext: bytes):
         plaintext = self.private_key.decrypt(
             ciphertext,
             self.padd
@@ -33,14 +33,14 @@ class AsymCipher:
     def gen_private_public_key():
         private_key = rsa.generate_private_key(
         public_exponent=65537,
-        key_size=2048,
+        key_size=4096,
         )
 
         return (private_key, private_key.public_key())
 
     def load_public_key(path_to_public_key):
         with open(path_to_public_key, "rb") as key_file:
-            return serialization.load_pem_public_key(key_file.read()) 
+            return serialization.load_pem_public_key(key_file.read())
 
     def save_public_key(public_key, path_to_public_key):
         pem = public_key.public_bytes(
