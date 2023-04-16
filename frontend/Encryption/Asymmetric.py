@@ -61,7 +61,7 @@ class AsymCipher:
         pem = private_key.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.BestAvailableEncryption(bytes(password, 'utf-8'))
+        encryption_algorithm=serialization.BestAvailableEncryption(password)
         )
         with open(path_to_private_key, 'wb') as file:
             file.write(pem)

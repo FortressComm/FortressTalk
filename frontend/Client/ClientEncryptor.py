@@ -1,19 +1,6 @@
-from encrypt.asymmetric import AsymCipher
-from encrypt.symmetric import SymCipher
+from Encryption.Asymmetric import AsymCipher
+from Encryption.Symmetric import SymCipher
 import pickle
-
-# import socket
-
-# HOST = "192.168.0.111"  # The server's hostname or IP address
-# PORT = 65432  # The port used by the server
-
-# with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-#     print('Connecting...')
-#     s.connect((HOST, PORT))
-#     print('Sending...')
-#     s.sendall(b'Hi')
-#     print('Recieving')
-#     data = s.recv(1024)
 
 class Frame:
 
@@ -28,12 +15,12 @@ class Frame:
     def from_bytes(bytes):
         return pickle.loads(bytes)
 
-class Client:
+class ClientEncryptor:
 
     def __init__(self, path_to_private_key, path_to_foreing_public_key, password):
         self.asym_cipher = AsymCipher()
 
-        self.asym_cipher.private_key = AsymCipher.load_private_key(path_to_private_key, bytes(password, 'utf-8'))
+        self.asym_cipher.private_key = AsymCipher.load_private_key(path_to_private_key, password)
         self.asym_cipher.foreign_public_key = AsymCipher.load_public_key(path_to_foreing_public_key)
         
         self.sym_cipher = SymCipher()
