@@ -1,7 +1,7 @@
 import os
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
-import json
+import pickle
 
 class SymCipher:
 
@@ -37,16 +37,7 @@ class SymCipher:
         return unpadder.update(data) + unpadder.finalize()
     
     def to_bytes(self):
-        return json.dumps({
-            "symKey": str(self.key),
-            "iv": str(self.iv)
-        }).encode()
+        return pickle.dumps(self)
     
     def from_bytes(bytes):
-        sym_cipher = SymCipher()
-        objectDict = json.loads(bytes)
-        sym_cipher.key = objectDict['symKey']
-        sym_cipher.iv = objectDict['iv']
-        sym_cipher.gen_cipher()
-        
-        return sym_cipher
+        return pickle.loads(bytes)

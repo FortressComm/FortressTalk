@@ -1,6 +1,7 @@
 from encrypt.asymmetric import AsymCipher
 from encrypt.symmetric import SymCipher
-import json
+import pickle
+
 # import socket
 
 # HOST = "192.168.0.111"  # The server's hostname or IP address
@@ -22,16 +23,10 @@ class Frame:
         
     
     def to_bytes(self):
-        return json.dumps({
-            "msg": str(self.msg),
-            "symCipher": str(self.sym_cipher)
-        }).encode()
+        return pickle.dumps(self)
     
     def from_bytes(bytes):
-        object_dict = json.loads(bytes)
-        frame = Frame(object_dict['msg'], object_dict['symCipher'])
-        
-        return frame
+        return pickle.loads(bytes)
 
 class Client:
 
@@ -60,6 +55,6 @@ class Client:
         encrypted_sym_cipher = frame.sym_cipher
 
         sym_cipher = SymCipher.from_bytes(self.asym_cipher.decrypt(encrypted_sym_cipher))
-        msg = sym_cipher.decrypt(encrypted_msg).decode()
+        msg = sym_cipher.decrypt(encrypted_msg)
 
         return msg
