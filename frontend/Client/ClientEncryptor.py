@@ -26,7 +26,7 @@ class ClientEncryptor:
         self.sym_cipher = SymCipher()
 
 
-    def get_bytes_to_send(self, message: bytes):
+    def get_bytes_to_send(self, message: bytes) -> bytes:
         self.sym_cipher.gen_key_iv()
         
         encrypted_msg = self.sym_cipher.encrypt(message)    
