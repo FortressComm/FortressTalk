@@ -1,5 +1,9 @@
 package org.example;
 
+import org.apache.tomcat.util.json.JSONParser;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
@@ -14,10 +18,25 @@ class ClientThread implements Runnable {
     private boolean isAuthorized = false;
     private User user = null;
     static final String CREATE_CHAT = "CREATE_CHAT";
-    static final String JOIN_CHAT = "JOIN_CHAT:";
-    static final String WRITE_TO_CHAT = "WRITE_TO_CHAT:";
-    static final String REGISTER = "REGISTER:";
-    static final String LOGIN = "LOGIN:";
+    static final String JOIN_CHAT = "JOIN_CHAT";
+    static final String WRITE_TO_CHAT = "WRITE_TO_CHAT";
+    static final String REGISTER = "REGISTER";
+    static final String LOGIN = "LOGIN";
+
+    static final String GET_CHAT_MESSAGES = "GET_CHAT_MESSAGES";
+
+    static final String SERVER_AUTH_CODE = "SERVER_AUTH_CODE";
+    static final String SERVER_MSG_ALL = "SERVER_MSG_ALL";
+    static final String SERVER_LOGIN = "SERVER_LOGIN";
+    static final String SERVER_REGISTRATION = "SERVER_REGISTRATION";
+    static final String SERVER_UNKNOWN = "SERVER_UNKNOWN";
+    static final String SERVER_SECURITY = "SERVER_SECURITY";
+    static final String SERVER_NEW_MESSAGE = "SERVER_NEW_MESSAGE";
+    static final String SERVER_CHAT_ID = "SERVER_CHAT_ID";
+    static final String SERVER_MSG_CHAT = "SERVER_MSG_CHAT";
+
+
+
     MessageServer messageServer;
    
     
@@ -55,9 +74,32 @@ class ClientThread implements Runnable {
                 var messageBytes = Arrays.copyOfRange(buffer, 0, bytesRead);
                 String message = new String(messageBytes, StandardCharsets.UTF_8);
 
-                if (message.startsWith(CREATE_CHAT)) {
+                String code;
+                String text;
+                String login;
+                String password;
+                String chatId;
+
+                // JSON
+                try {
+                    JSONObject json = new JSONObject(message);
+                    code = String.valueOf(json.getString("code"));
+                    text = String.valueOf(json.getString("text"));
+                    login = String.valueOf(json.getString("login"));
+                    password = String.valueOf(json.getString("password"));
+                    chatId = String.valueOf(json.getString("chat_id"));
+
+
+
+                } catch (JSONException e) {
+                    throw new RuntimeException(e);
+                }
+
+
+
+                if (code.equals(CREATE_CHAT)) {
                     if(isAuthorized){
-                        createChat(message);
+                        createChat();
                         saveChats();
                     }
                     else{
@@ -65,43 +107,58 @@ class ClientThread implements Runnable {
                     }
 
                 }
-                else if(message.startsWith(REGISTER)){
+                else if(code.equals(REGISTER)){
                     if(!isAuthorized) {
-                        register(message);
+                        register(login, password);
                         saveUsers();
                     }
                     else{
-                        sendMessage(out, "You are already authorized");
+                        sendFrame(out, new Frame(SERVER_AUTH_CODE, "You are already authorized"));
                     }
 
                 }
-                else if(message.startsWith(LOGIN)){
+                else if(code.equals(LOGIN)){
                     if(!isAuthorized){
-                        login(message);
+                        login(login, password);
                     }
                     else{
-                        sendMessage(out, "You are already authorized");
+                        sendFrame(out, new Frame(SERVER_AUTH_CODE, "You are already authorized"));
                     }
 
                 }
-                else if (message.startsWith(JOIN_CHAT)) {
+                else if (code.equals(JOIN_CHAT)) {
                     if(isAuthorized) {
-                        joinChat(message);
+                        joinChat(chatId);
+                        saveChats();
                     }
                     else{
                         sendNoAuthMessage();
                     }
 
                 }
-                else if(message.startsWith(WRITE_TO_CHAT)){
+                else if(code.equals(WRITE_TO_CHAT)){
                     if(isAuthorized){
-                        writeToChat(message);
+                        writeToChat(chatId, text,messageBytes);
+
+                    }
+                    else{
+                        sendNoAuthMessage();
+                    }
+                }
+                else if(code.equals(GET_CHAT_MESSAGES)){
+                    if(isAuthorized){
+                        List<Message> messages = getAllMessagesFromChat(chatId);
+
+                        Frame frame = new Frame(SERVER_MSG_ALL, "");
+                        frame.messages = messages;
+                        sendFrame(out, frame);
                     }
                     else{
                         sendNoAuthMessage();
                     }
                 }
                 else {
+
                     unknownMessage(message);
                 }
             }
@@ -109,134 +166,127 @@ class ClientThread implements Runnable {
 
     }
     private void sendNoAuthMessage(){
-        sendMessage(out, "You are not authorized");
+        Frame frame = new Frame("AUTH", "You are not authorized");
+        sendFrame(out, frame);
     }
-    private void sendMessage(OutputStream out, String message){
+    private void sendFrame(OutputStream out, Frame frame) {
+
+
+
+
         try {
-            out.write(message.getBytes(StandardCharsets.UTF_8));
+            out.write(frame.toJsonString().getBytes(StandardCharsets.UTF_8));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
-    private String getMessageWithoutPrefix(String message, String prefix){
-        String text = message.substring(message.indexOf(prefix) + prefix.length());
-        return text;
-    }
+//    private String getMessageWithoutPrefix(String message, String prefix){
+//        String text = message.substring(message.indexOf(prefix) + prefix.length());
+//        return text;
+//    }
     private String[] getMessageParams(String message){
         return message.split("&");
     }
-    private void register(String message){
-        String login;
-        String password;
-        try{
-        String registerInfo = getMessageWithoutPrefix(message,REGISTER);
-        String params[] = getMessageParams(registerInfo);
-        login = params[0];
-        password = params[1];
-        }
-        catch (ArrayIndexOutOfBoundsException | StringIndexOutOfBoundsException exception){
-            sendMessage(out, "Wrong number of parameters");
-            return;
-        }
+    private void register(String login, String password){
 
         User user = new User(login, password);
         this.user = user;
         this.isAuthorized = true;
         messageServer.users.add(user);
-        try {
-            out.write("thank you for registration".getBytes(StandardCharsets.UTF_8));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-    private void login(String message){
-        String login;
-        String password;
-        try{
-        String registerInfo = getMessageWithoutPrefix(message,LOGIN);
-        String params[] = getMessageParams(registerInfo);
-            login = params[0];
-            password = params[1];
-        }
-        catch (ArrayIndexOutOfBoundsException | StringIndexOutOfBoundsException exception){
-            sendMessage(out, "Wrong number of parameters");
-            return;
-        }
+        Frame frame = new Frame(SERVER_REGISTRATION, "thank you for registration");
+        sendFrame(out, frame);
 
+    }
+    private void login(String login, String password){
         Optional<User> user = messageServer.users.stream().filter(u-> u.login.equals(login)
                 && u.password.equals(password)).findFirst();
         if(user.isPresent()){
             this.isAuthorized = true;
             this.user = user.get();
-            sendMessage(out, "You are logged in");
+            Frame frame = new Frame(SERVER_LOGIN, "You are logged in");
+            sendFrame(out, frame);
         }
         else{
-
-            sendMessage(out, "NO SUCH USER");
+            Frame frame = new Frame(SERVER_LOGIN, "NO SUCH USER");
+            sendFrame(out, frame);
         }
     }
 
 
     private void unknownMessage(String message) {
         System.out.println(message);
-        sendMessage(out, "UNKNOWN MESSAGE");
+        Frame frame = new Frame(SERVER_UNKNOWN, "UNKNOWN MESSAGE");
+        sendFrame(out, frame);
     }
 
-    private void writeToChat(String message) {
-        String text;
-        String chatId;
-        String textOfMessage;
-        try {
-            text = getMessageWithoutPrefix(message, WRITE_TO_CHAT);
-            String params[] = getMessageParams(text);
-            chatId = params[0];
-            textOfMessage = params[1];
-        }
-            catch (ArrayIndexOutOfBoundsException | StringIndexOutOfBoundsException exception){
-            sendMessage(out, "Wrong number of parameters");
-            return;
-        }
+    private void writeToChat(String chatId, String text, byte [] textBytes) {
 
-        List<ClientThread> clientSockets = messageServer.clients;
+
+
         Optional<Chat> chat = getChatById(chatId);
         if(chat.isEmpty()){
-           sendMessage(out, "NO SUCH CHAT");
+            Frame frame = new Frame(SERVER_UNKNOWN, "NO SUCH CHAT");
            return;
         }
-
+        List<ClientThread> clientSockets = messageServer.clients;
         if(!chat.get().userIds.contains(user.getId())){
-            sendMessage(out, "YOU ARE NOT ALLOWED TO WRITE IN THIS CHAT");
+            Frame frame = new Frame(SERVER_SECURITY, "YOU ARE NOT ALLOWED TO WRITE IN THIS CHAT");
+            sendFrame(out, frame);
             return;
         }
+        Message m = new Message(user.getId(), chatId, text, textBytes);
+        messageServer.messages.add(m);
+        saveMessages();
 
         for(ClientThread socket : clientSockets){
             if(clientSocket != socket.clientSocket && chat.get().userIds.contains(socket.user.getId())){
-
-                sendMessage(socket.out, textOfMessage);
+                Frame frame = new Frame(SERVER_NEW_MESSAGE, text);
+                sendFrame(socket.out, frame);
             }
             else{
-                sendMessage(socket.out, "Message Was sent");
+                Frame frame = new Frame(SERVER_MSG_CHAT, "Message Was sent");
+                sendFrame(socket.out, frame);
             }
         }
+    }
+    public List<Message> getAllMessagesFromChat(String chatId){
+
+        Optional<Chat> chat = getChatById(chatId);
+        if(chat.isEmpty()){
+            Frame frame = new Frame(SERVER_UNKNOWN,"NO SUCH CHAT");
+            sendFrame(out, frame);
+            return new ArrayList<>();
+        }
+        List<ClientThread> clientSockets = messageServer.clients;
+        if(!chat.get().userIds.contains(user.getId())){
+            Frame frame = new Frame(SERVER_SECURITY,"YOU ARE NOT ALLOWED TO WRITE IN THIS CHAT" );
+            sendFrame(out,frame );
+            return new ArrayList<>();
+        }
+        return  messageServer.messages.stream().filter(message -> message.getChatId().equals(chatId)).toList();
+
+
     }
     public Optional<Chat> getChatById(String uuid){
         Optional<Chat> c = messageServer.chats.stream().filter(chat -> chat.getId().equals(uuid)).findFirst();
         return c;
     }
-    private void joinChat(String message) {
-        String uuid = getMessageWithoutPrefix(message, JOIN_CHAT);
-        Optional<Chat> c = getChatById(uuid);
-        System.out.print(uuid);
+    private void joinChat(String chatId) {
+
+        Optional<Chat> c = getChatById(chatId);
+        System.out.print(chatId);
         for(var chat : messageServer.chats){
             System.out.println("Other chats" + chat.getId());
         }
         if(c.isPresent()){
             c.get().userIds.add(this.user.getId());
-            sendMessage(out, "You are added to a chat");
 
+            Frame frame = new Frame(SERVER_MSG_CHAT, "You are added to a chat");
+            sendFrame(out, frame);
         }
         else{
-            sendMessage(out, "NO SUCH CHAT");
+            Frame frame = new Frame(SERVER_UNKNOWN, "NO SUCH CHAT");
+            sendFrame(out, frame);
         }
     }
     private void saveChats(){
@@ -269,13 +319,29 @@ class ClientThread implements Runnable {
             throw new RuntimeException(e);
         }
     }
+    private void saveMessages(){
+        try {
+            FileOutputStream fout = new FileOutputStream("messages");
+            ObjectOutputStream out = new ObjectOutputStream(fout);
+            out.writeObject(messageServer.messages);
+            out.flush();
 
-    private void createChat(String message) {
-        System.out.println(message);
+            out.close();
+            fout.close();
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void createChat() {
+
 
         Chat chat = new Chat();
         chat.userIds.add(this.user.getId());
         messageServer.chats.add(chat);
-        sendMessage(out, String.format("chat created %s", chat.getId()));
+        Frame frame = new Frame(SERVER_CHAT_ID,chat.getId() );
+        sendFrame(out, frame);
     }
 }
