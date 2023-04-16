@@ -1,0 +1,17 @@
+# IntelliJ-specific files
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Compiled output
+/target/
+/bin/
+/classes/
+
+/chats
+/users
+
+# Logs and backups
+*.log
+*.bak
