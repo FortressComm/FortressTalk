@@ -27,26 +27,29 @@ class ChatApp:
         self.chat_frame = tk.Frame(self.root, width=400, height=400)
 
         self.chat_name_label = tk.Label(self.chat_frame, text="Chat Name:")
-        self.chat_name_label.pack()
+        self.chat_name_label.grid(row=0, column=0, padx=10, pady=10)
 
         self.chat_name_var = tk.StringVar()
         self.chat_name_dropdown = tk.OptionMenu(self.chat_frame, self.chat_name_var, "Chat 1", "Chat 2", "Chat 3")
-        self.chat_name_dropdown.pack()
+        self.chat_name_dropdown.grid(row=0, column=1, padx=10, pady=10)
 
         self.chat_area = tk.Text(self.chat_frame, width=40, height=16)
-        self.chat_area.pack()
+        self.chat_area.configure(state="disabled")  # Set text field as read-only
+        self.chat_area.grid(row=1, column=0, columnspan=2, padx=10, pady=10)
 
-        self.entry_frame = tk.Frame(self.chat_frame)
-        self.entry_frame.pack()
+        self.scrollbar = tk.Scrollbar(self.chat_frame, width=20)
+        self.scrollbar.grid(row=1, column=2, sticky="NS", padx=0, pady=10)
+        self.chat_area.config(yscrollcommand=self.scrollbar.set)
+        self.scrollbar.config(command=self.chat_area.yview)
 
-        self.entry = tk.Entry(self.entry_frame, width=32)
-        self.entry.pack(side=tk.LEFT)
+        self.entry = tk.Entry(self.chat_frame)
+        self.entry.grid(row=2, column=0, padx=10, pady=10, sticky="EW")
 
-        self.send_button = tk.Button(self.entry_frame, text="Send", command=self.send_message)
-        self.send_button.pack(side=tk.LEFT)
+        self.send_button = tk.Button(self.chat_frame, text="Send", command=self.send_message)
+        self.send_button.grid(row=2, column=1, padx=10, pady=10, sticky="W")
 
-        self.attach_button = tk.Button(self.entry_frame, text="Attach File", command=self.attach_file)
-        self.attach_button.pack(side=tk.LEFT)
+        self.attach_button = tk.Button(self.chat_frame, text="Attach File", command=self.attach_file)
+        self.attach_button.grid(row=2, column=1, padx=80, pady=10, sticky="W")
 
         # Create login page
         self.login_frame = tk.Frame(self.root, width=400, height=400)
@@ -123,17 +126,34 @@ class ChatApp:
     def send_message(self):
         message = self.entry.get()
         if message:
-            chat_info = f"{self.current_user} : {message}"
+            chat_info = f"{self.current_user} ({self.current_chat}): {message}"
+            self.chat_area.configure(state="normal")  # Set text field as editable temporarily
             self.chat_area.insert(tk.END, chat_info + "\n")
+            self.chat_area.configure(state="disabled")  # Set text field as read-only again
             self.entry.delete(0, tk.END)
 
     def attach_file(self):
         file_path = filedialog.askopenfilename()
         if file_path:
             chat_info = f"{self.current_user} ({self.current_chat}) attached file: {file_path}"
+            self.chat_area.configure(state="normal")  # Set text field as editable temporarily
             self.chat_area.insert(tk.END, chat_info + "\n")
+            self.chat_area.configure(state="disabled")  # Set text field as read-only again
+
+    def receive_message(self, message):
+        self.chat_area.configure(state="normal")  # Set text field as editable temporarily
+        self.chat_area.insert(tk.END, message + "\n")
+        self.chat_area.configure(state="disabled")  # Set text field as read-only again
+        self.chat_area.see(tk.END)  # Scroll to the end of the chat area
 
 if __name__ == "__main__":
     root = tk.Tk()
     app = ChatApp(root)
+
+    # Bind mouse wheel scrolling to the chat area
+    app.chat_area.bind("<MouseWheel>", lambda event: app.chat_area.yview_scroll(int(-1 * (event.delta / 120)), "units"))
+
+    # Configure the scrollbar's appearance
+    app.scrollbar.config(troughcolor="#D3D3D3", activebackground="#A9A9A9")
+
     root.mainloop()
