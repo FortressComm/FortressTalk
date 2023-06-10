@@ -21,7 +21,7 @@ def main():
     AsymCipher.save_private_key(private_key,'2_private_key.pem', b'321')
     AsymCipher.save_public_key(public_key,'2_public_key.pem')
     
-    client = Client("127.0.0.1", 65432)
+    client = Client("192.168.0.111", 65432)
     client.connect()
 
     client.start_reciever()
