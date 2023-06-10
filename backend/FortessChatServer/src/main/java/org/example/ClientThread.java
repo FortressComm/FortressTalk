@@ -294,6 +294,7 @@ class ClientThread implements Runnable {
         for(var chat : messageServer.chats){
             System.out.println("Other chats" + chat.getId());
         }
+
         if(c.isPresent()){
             c.get().userIds.add(this.user.getId());
 
@@ -359,5 +360,7 @@ class ClientThread implements Runnable {
         messageServer.chats.add(chat);
         Frame frame = new Frame(SERVER_CHAT_ID,chat.getId() );
         sendFrame(out, frame);
+
+        joinChat(chat.getId());
     }
 }
