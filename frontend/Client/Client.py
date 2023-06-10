@@ -29,21 +29,65 @@ class Client:
     def sym_asym_encrypt(self, data: str) -> str:
         return b64encode(self.client_encryptor.get_bytes_to_send(bytes(data, 'utf-8'))).decode('utf-8')
 
-    def create_json_bytes(self, code, msg):
-        login = 'vlad'
-        password = 'bog'
-        chat_id = '26820a39-a764-439b-b1c8-ae78cd7eda04'
-        m = {
+    def encrypt_dict(self, dict):
+        for key in dict:
+            dict[key] = self.asym_encrypt(dict[key])
+            
+    def get_dict_bytes(self, dict):
+        return bytes(json.dumps(dict, indent = 4), 'utf-8')
+
+    def send_register(self, login, password):
+        return self.send(self.get_dict_bytes(self.encrypt_dict({
+            'code': 'REGISTER',
+            'login': login,
+            'password': password,
+        })))
+
+    def send_login(self, login, password):
+        return self.send(self.get_dict_bytes(self.encrypt_dict({
+            'code': 'LOGIN',
+            'login': login,
+            'password': password,
+        })))
+
+    def send_msg(self, msg, chat_id):
+        return self.send(self.get_dict_bytes({
             'text': self.sym_asym_encrypt(msg),
-            'code': self.asym_encrypt(code),
-            'login': self.asym_encrypt(login),
-            'password': self.asym_encrypt(password),
+            'code': self.asym_encrypt('WRITE_TO_CHAT'),
             'chat_id': self.asym_encrypt(chat_id),
-        }
+        }))
 
-        json_object = json.dumps(m, indent = 4)
+    def send_join_chat(self, chat_id):
+        return self.send(self.get_dict_bytes(self.encrypt_dict({
+            'code': 'JOIN_CHAT',
+            'chat_id': chat_id,
+        })))
 
-        return bytes(json_object, 'utf-8')
+    def send_create_chat(self):
+        return self.send(self.get_dict_bytes(self.encrypt_dict({
+            'code': 'CREATE_CHAT',
+        })))
+    
+    def send_get_msg(self):
+        return self.send(self.get_dict_bytes(self.encrypt_dict({
+            'code': 'GET_CHAT_MESSAGES',
+        })))
+
+    # def create_json_bytes(self, code, msg):
+    #     login = 'vlad'
+    #     password = 'bog'
+    #     chat_id = '26820a39-a764-439b-b1c8-ae78cd7eda04'
+    #     m = {
+    #         'text': self.sym_asym_encrypt(msg),
+    #         'code': self.asym_encrypt(code),
+    #         'login': self.asym_encrypt(login),
+    #         'password': self.asym_encrypt(password),
+    #         'chat_id': self.asym_encrypt(chat_id),
+    #     }
+
+    #     json_object = json.dumps(m, indent = 4)
+
+    #     return bytes(json_object, 'utf-8')
 
     def sender_func(self):
         while True:
@@ -62,11 +106,7 @@ class Client:
                     data = json.loads(data)
                     data = data['text']
                     data = b64decode(data)
-                    print(self.other_client_encryptor.get_recieved_msg(data))
-
-    
-
-        
+                    print(self.other_client_encryptor.get_recieved_msg(data))        
     
     def start_reciever(self):
         thread = threading.Thread(target=self.reciever_func)
