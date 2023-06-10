@@ -14,7 +14,12 @@ class ClientThread implements Runnable {
         this.clientSocket = clientSocket;
         this.messageServer = messageServer;
 
+
+        securityImp = SecurityImp.getInstance();
+
+
     }
+    private SecurityImp securityImp;
     private boolean isAuthorized = false;
     private User user = null;
     static final String CREATE_CHAT = "CREATE_CHAT";
@@ -22,9 +27,11 @@ class ClientThread implements Runnable {
     static final String WRITE_TO_CHAT = "WRITE_TO_CHAT";
     static final String REGISTER = "REGISTER";
     static final String LOGIN = "LOGIN";
-
     static final String GET_CHAT_MESSAGES = "GET_CHAT_MESSAGES";
 
+
+
+    ////////////////////////////////////////////////////////////
     static final String SERVER_AUTH_CODE = "SERVER_AUTH_CODE";
     static final String SERVER_MSG_ALL = "SERVER_MSG_ALL";
     static final String SERVER_LOGIN = "SERVER_LOGIN";
@@ -61,7 +68,7 @@ class ClientThread implements Runnable {
         }
         System.out.println("in");
 
-        byte[] buffer = new byte[10000];
+        byte[] buffer = new byte[100000];
         int bytesRead = 0;
 
         while (true) {
@@ -72,6 +79,7 @@ class ClientThread implements Runnable {
             }
             if (bytesRead > 0) {
                 var messageBytes = Arrays.copyOfRange(buffer, 0, bytesRead);
+
                 String message = new String(messageBytes, StandardCharsets.UTF_8);
 
                 String code;
@@ -83,11 +91,18 @@ class ClientThread implements Runnable {
                 // JSON
                 try {
                     JSONObject json = new JSONObject(message);
-                    code = String.valueOf(json.getString("code"));
+                    code = securityImp.decrypt(String.valueOf(json.getString("code")));
+
+
                     text = String.valueOf(json.getString("text"));
-                    login = String.valueOf(json.getString("login"));
-                    password = String.valueOf(json.getString("password"));
-                    chatId = String.valueOf(json.getString("chat_id"));
+                    login = securityImp.decrypt(String.valueOf(json.getString("login")));
+
+
+
+
+
+                    password = securityImp.decrypt(String.valueOf(json.getString("password")));
+                    chatId = securityImp.decrypt(String.valueOf(json.getString("chat_id")));
 
 
 
@@ -166,13 +181,11 @@ class ClientThread implements Runnable {
 
     }
     private void sendNoAuthMessage(){
-        Frame frame = new Frame("AUTH", "You are not authorized");
+        Frame frame = new Frame(SERVER_AUTH_CODE, "You are not authorized");
         sendFrame(out, frame);
     }
+
     private void sendFrame(OutputStream out, Frame frame) {
-
-
-
 
         try {
             out.write(frame.toJsonString().getBytes(StandardCharsets.UTF_8));
