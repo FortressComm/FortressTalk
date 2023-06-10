@@ -11,6 +11,9 @@ public class Frame {
     String code;
     String message;
     List<Message> messages;
+    public Frame(){
+
+    }
     public Frame(String code, String message) {
         this.code = code;
         this.message = message;
