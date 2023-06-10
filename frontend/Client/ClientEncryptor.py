@@ -17,14 +17,19 @@ class Frame:
 
 class ClientEncryptor:
 
-    def __init__(self, path_to_private_key, path_to_foreing_public_key, password):
+    def __init__(self, path_to_foreing_public_key, path_to_private_key = '', password = b''):
         self.asym_cipher = AsymCipher()
-
-        self.asym_cipher.private_key = AsymCipher.load_private_key(path_to_private_key, password)
-        self.asym_cipher.foreign_public_key = AsymCipher.load_public_key(path_to_foreing_public_key)
-        
         self.sym_cipher = SymCipher()
 
+        if bool(path_to_private_key):
+            self.asym_cipher.private_key = AsymCipher.load_private_key(path_to_private_key, password)
+        
+        if bool(path_to_foreing_public_key):
+            self.asym_cipher.foreign_public_key = AsymCipher.load_public_key(path_to_foreing_public_key)
+
+
+    def only_asym_encrypt(self, data: bytes):
+        return bytes(self.asym_cipher.encrypt(data))
 
     def get_bytes_to_send(self, message: bytes) -> bytes:
         self.sym_cipher.gen_key_iv()
