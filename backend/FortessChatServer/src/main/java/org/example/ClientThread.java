@@ -159,7 +159,7 @@ class ClientThread implements Runnable {
                 }
                 else {
 
-                    unknownMessage(message);
+                    unknownMessage(messageBytes);
                 }
             }
         }
@@ -213,10 +213,13 @@ class ClientThread implements Runnable {
     }
 
 
-    private void unknownMessage(String message) {
-        System.out.println(message);
-        Frame frame = new Frame(SERVER_UNKNOWN, "UNKNOWN MESSAGE");
-        sendFrame(out, frame);
+    private void unknownMessage(byte[] bt) {
+
+        try {
+            out.write(bt);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void writeToChat(String chatId, String text, byte [] textBytes) {
