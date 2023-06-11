@@ -74,7 +74,6 @@ public class MessageServer {
     public static void main(String[] args) {
         MessageServer server=new MessageServer();
 
-
         try {
             server.start(65432);
         } catch (IOException e) {

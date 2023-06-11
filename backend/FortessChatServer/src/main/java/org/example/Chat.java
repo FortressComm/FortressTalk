@@ -30,9 +30,6 @@ class Chat implements Serializable {
             throw new RuntimeException(e);
         }
 
-
-
-
         return json.toString();
     }
 }

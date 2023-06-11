@@ -206,7 +206,7 @@ class ClientThread implements Runnable {
     }
 
     private List<Chat> getAllChatsByUser() {
-        return (List<Chat>) messageServer.chats.stream().filter(chat -> chat.userIds.equals(user.getId()));
+        return (List<Chat>) messageServer.chats.stream().filter(chat -> chat.userIds.contains(user.getId()));
     }
 
     private void sendNoAuthMessage(){
