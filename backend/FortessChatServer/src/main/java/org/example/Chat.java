@@ -21,7 +21,7 @@ class Chat implements Serializable {
         this.userIds = new ArrayList<>();
     }
 
-    public JSONObject toJsonString() {
+    public JSONObject toJson() {
         JSONObject json = new JSONObject();
 
         try {
