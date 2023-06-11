@@ -35,6 +35,7 @@ class ClientThread implements Runnable {
     static final String SERVER_AUTH_CODE = "SERVER_AUTH_CODE";
     static final String SERVER_MSG_ALL = "SERVER_MSG_ALL";
     static final String SERVER_LOGIN = "SERVER_LOGIN";
+    static final String SERVER_LOGIN_FAILED = "SERVER_LOGIN_FAILED";
     static final String SERVER_REGISTRATION = "SERVER_REGISTRATION";
     static final String SERVER_UNKNOWN = "SERVER_UNKNOWN";
     static final String SERVER_SECURITY = "SERVER_SECURITY";
@@ -83,18 +84,23 @@ class ClientThread implements Runnable {
                 String message = new String(messageBytes, StandardCharsets.UTF_8);
 
                 String code;
-                String text;
+                String text = "";
                 String login;
                 String password;
-                String chatId;
+                String chatId = "";
 
                 // JSON
                 try {
                     JSONObject json = new JSONObject(message);
                     code = securityImp.decrypt(String.valueOf(json.getString("code")));
 
+                    if(json.has("text")){
+                        text = String.valueOf(json.getString("text"));
+                    }
 
-                    text = String.valueOf(json.getString("text"));
+
+
+
                     login = securityImp.decrypt(String.valueOf(json.getString("login")));
 
 
@@ -102,8 +108,10 @@ class ClientThread implements Runnable {
 
 
                     password = securityImp.decrypt(String.valueOf(json.getString("password")));
-                    chatId = securityImp.decrypt(String.valueOf(json.getString("chat_id")));
 
+                    if(json.has("chat_id")){
+                        chatId = securityImp.decrypt(String.valueOf(json.getString("chat_id")));
+                    }
 
 
                 } catch (JSONException e) {
@@ -220,7 +228,7 @@ class ClientThread implements Runnable {
             sendFrame(out, frame);
         }
         else{
-            Frame frame = new Frame(SERVER_LOGIN, "NO SUCH USER");
+            Frame frame = new Frame(SERVER_LOGIN_FAILED, "NO SUCH USER");
             sendFrame(out, frame);
         }
     }
