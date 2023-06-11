@@ -88,10 +88,10 @@ class ClientThread implements Runnable {
 
                 String message = new String(messageBytes, StandardCharsets.UTF_8);
 
-                String code;
+                String code = "";
                 String text = "";
-                String login;
-                String password;
+                String login = "";
+                String password = "";
                 String chatId = "";
 
                 // JSON
@@ -105,14 +105,18 @@ class ClientThread implements Runnable {
 
 
 
+                    if(json.has("login")) {
+                        login = securityImp.decrypt(String.valueOf(json.getString("login")));
 
-                    login = securityImp.decrypt(String.valueOf(json.getString("login")));
+                    }
 
 
+                    if(json.has("password")) {
+                        password = securityImp.decrypt(String.valueOf(json.getString("password")));
+
+                    }
 
 
-
-                    password = securityImp.decrypt(String.valueOf(json.getString("password")));
 
                     if(json.has("chat_id")){
                         chatId = securityImp.decrypt(String.valueOf(json.getString("chat_id")));
@@ -206,7 +210,7 @@ class ClientThread implements Runnable {
     }
 
     private List<Chat> getAllChatsByUser() {
-        return (List<Chat>) messageServer.chats.stream().filter(chat -> chat.userIds.equals(user.getId()));
+        return messageServer.chats.stream().filter(chat -> chat.userIds.contains(user.getId())).toList();
     }
 
     private void sendNoAuthMessage(){

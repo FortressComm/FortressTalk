@@ -75,6 +75,12 @@ class Client:
             'code': 'GET_CHAT_MESSAGES',
         })))
 
+    def send_get_chats(self):
+        return self.send(self.get_dict_bytes(self.encrypt_dict({
+            'code': 'GET_CHATS',
+        })))
+    
+    
     # def create_json_bytes(self, code, msg):
     #     login = 'vlad'
     #     password = 'bog'
@@ -104,7 +110,7 @@ class Client:
                 data = self.client_socket.recv(20000)
             except:
                 break
-            
+
             data = data.decode('utf-8')
             data = json.loads(data)
             print(data)
@@ -119,6 +125,10 @@ class Client:
                     self.app.login_success(data)
                 case 'SERVER_LOGIN_FAILED':
                     self.app.login_failed(data)
+                case 'SERVER_CHATS':
+                    self.app.chats_response(data)
+                case 'SERVER_CHAT_ID':
+                    self.app.create_chat_resoponse(data)
                 case _:
                     self.app.show_messagebox("Error", data['code'])  
     
