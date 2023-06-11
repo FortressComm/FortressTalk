@@ -197,6 +197,7 @@ class ChatApp:
 
     def chats_response(self, data):
         for chat in data['chats']:
+            print(type(chat))
             print(chat)
 
     def create_chat_resoponse(self, data):
