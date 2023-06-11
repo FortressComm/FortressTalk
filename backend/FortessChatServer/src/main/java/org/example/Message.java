@@ -36,7 +36,7 @@ class Message implements Serializable {
         this.id =  UUID.randomUUID().toString();
         this.text = text;
     }
-    public JSONObject toJsonString(){
+    public JSONObject toJson(){
         JSONObject json = new JSONObject();
 
         try {
