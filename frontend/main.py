@@ -73,6 +73,9 @@ class ChatApp:
         self.send_button = tk.Button(self.chat_frame, text="Send", command=self.send_message)
         self.send_button.grid(row=2, column=1, padx=10, pady=10, sticky="W")
 
+        self.send_button = tk.Button(self.chat_frame, text="Create chat", command=self.create_chat)
+        self.send_button.grid(row=2, column=1, padx=150, pady=10, sticky="W")
+
         self.attach_button = tk.Button(self.chat_frame, text="Attach File", command=self.attach_file)
         self.attach_button.grid(row=2, column=1, padx=80, pady=10, sticky="W")
 
@@ -190,7 +193,19 @@ class ChatApp:
         self.show_messagebox("SERVER_LOGIN", data['text'])
         self.login_frame.pack_forget()
         self.chat_frame.pack()
+        self.client.send_get_chats()
 
+    def chats_response(self, data):
+        for chat in data['chats']:
+            print(chat)
+
+    def create_chat_resoponse(self, data):
+        print(data)
+        self.client.send_get_chats()
+
+    def create_chat(self):
+        self.client.send_create_chat()
+    
     def show_messagebox(self, title, content):
         messagebox.showinfo(title, content)
 
