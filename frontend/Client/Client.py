@@ -100,7 +100,11 @@ class Client:
 
     def reciever_func(self):        
         while True:
-            data = self.client_socket.recv(20000)
+            try:
+                data = self.client_socket.recv(20000)
+            except:
+                break
+            
             data = data.decode('utf-8')
             data = json.loads(data)
             print(data)
@@ -119,8 +123,12 @@ class Client:
                     self.app.show_messagebox("Error", data['code'])  
     
     def start_reciever(self):
-        thread = threading.Thread(target=self.reciever_func)
-        thread.start()
+        self.thread = threading.Thread(target=self.reciever_func)
+        self.thread.start()
+
+    def stop_reciever (self):
+        self.disconnect()
+        self.thread.join()
 
     # def start_sender(self):
     #     thread = threading.Thread(target=self.sender_func)

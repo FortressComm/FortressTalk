@@ -8,8 +8,20 @@ import time
 
 class ChatApp:
     def __init__(self, root):
+        self.root = root
+        self.chats = []
         self.connect()
         self.init_view(root)
+        self.root_settings()
+        
+
+    def on_closing(self):
+        self.client.stop_reciever()
+        self.root.destroy()
+
+    def root_settings(self):
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+        
 
     def connect(self):
         self.client = Client("127.0.0.1", 65432, self)
@@ -17,7 +29,6 @@ class ChatApp:
         self.client.start_reciever()
 
     def init_view(self, root):
-        self.root = root
         self.root.title("Chat App")
         self.current_user = None
         self.current_chat = None
@@ -44,7 +55,7 @@ class ChatApp:
         self.chat_name_label.grid(row=0, column=0, padx=10, pady=10)
 
         self.chat_name_var = tk.StringVar()
-        self.chat_name_dropdown = tk.OptionMenu(self.chat_frame, self.chat_name_var, "Chat 1", "Chat 2", "Chat 3")
+        self.chat_name_dropdown = tk.OptionMenu(self.chat_frame, self.chat_name_var, None,*self.chats, command=self.on_chat_select)
         self.chat_name_dropdown.grid(row=0, column=1, padx=10, pady=10)
 
         self.chat_area = tk.Text(self.chat_frame, width=40, height=16)
@@ -102,6 +113,9 @@ class ChatApp:
         self.register_button.pack()
 
         self.show_login_page()
+
+    def on_chat_select(self, value):
+        print(value)
 
     def show_login_page(self):
         self.register_frame.pack_forget()
@@ -191,7 +205,6 @@ def start_ui():
     app.scrollbar.config(troughcolor="#D3D3D3", activebackground="#A9A9A9")
 
     root.mainloop()
-    print('closed')
 
 
 
