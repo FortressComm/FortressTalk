@@ -24,6 +24,8 @@ class ClientThread implements Runnable {
     private User user = null;
     static final String CREATE_CHAT = "CREATE_CHAT";
     static final String JOIN_CHAT = "JOIN_CHAT";
+
+    static final String GET_CHATS = "GET_CHATS";
     static final String WRITE_TO_CHAT = "WRITE_TO_CHAT";
     static final String REGISTER = "REGISTER";
     static final String LOGIN = "LOGIN";
@@ -35,6 +37,9 @@ class ClientThread implements Runnable {
     static final String SERVER_AUTH_CODE = "SERVER_AUTH_CODE";
     static final String SERVER_MSG_ALL = "SERVER_MSG_ALL";
     static final String SERVER_LOGIN = "SERVER_LOGIN";
+    static final String SERVER_CHATS = "SERVER_CHATS";
+
+
     static final String SERVER_LOGIN_FAILED = "SERVER_LOGIN_FAILED";
     static final String SERVER_REGISTRATION = "SERVER_REGISTRATION";
     static final String SERVER_UNKNOWN = "SERVER_UNKNOWN";
@@ -180,6 +185,17 @@ class ClientThread implements Runnable {
                         sendNoAuthMessage();
                     }
                 }
+                else if(code.equals(GET_CHATS)){
+                    if(isAuthorized){
+                        List<Chat> chats = getAllChatsByUser();
+                        Frame frame = new Frame(SERVER_CHATS, "");
+                        frame.chats = chats;
+                        sendFrame(out, frame);
+                    }
+                    else{
+                        sendNoAuthMessage();
+                    }
+                }
                 else {
 
                     unknownMessage(messageBytes);
@@ -188,6 +204,11 @@ class ClientThread implements Runnable {
         }
 
     }
+
+    private List<Chat> getAllChatsByUser() {
+        return (List<Chat>) messageServer.chats.stream().filter(chat -> chat.userIds.equals(user.getId()));
+    }
+
     private void sendNoAuthMessage(){
         Frame frame = new Frame(SERVER_AUTH_CODE, "You are not authorized");
         sendFrame(out, frame);
@@ -208,6 +229,7 @@ class ClientThread implements Runnable {
     private String[] getMessageParams(String message){
         return message.split("&");
     }
+
     private void register(String login, String password){
 
         User user = new User(login, password);

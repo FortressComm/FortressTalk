@@ -11,6 +11,7 @@ public class Frame {
     String code;
     String message;
     List<Message> messages;
+    List<Chat> chats;
     public Frame(){
 
     }
@@ -36,6 +37,13 @@ public class Frame {
                 json.put("messages", messages.stream().map(message ->message.toJsonString()).toList() );
             }
 
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
+        }
+        try{
+            if(chats!=null){
+                json.put("chats", chats.stream().map(chat -> chat.toJsonString()).toList());
+            }
         } catch (JSONException e) {
             throw new RuntimeException(e);
         }
