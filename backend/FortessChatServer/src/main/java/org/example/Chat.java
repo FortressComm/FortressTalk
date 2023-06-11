@@ -21,7 +21,7 @@ class Chat implements Serializable {
         this.userIds = new ArrayList<>();
     }
 
-    public String toJsonString() {
+    public JSONObject toJsonString() {
         JSONObject json = new JSONObject();
 
         try {
@@ -30,6 +30,6 @@ class Chat implements Serializable {
             throw new RuntimeException(e);
         }
 
-        return json.toString();
+        return json;
     }
 }

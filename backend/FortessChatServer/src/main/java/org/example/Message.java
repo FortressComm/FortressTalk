@@ -36,7 +36,7 @@ class Message implements Serializable {
         this.id =  UUID.randomUUID().toString();
         this.text = text;
     }
-    public String toJsonString(){
+    public JSONObject toJsonString(){
         JSONObject json = new JSONObject();
 
         try {
@@ -54,9 +54,6 @@ class Message implements Serializable {
         } catch (JSONException e) {
             throw new RuntimeException(e);
         }
-
-
-
-        return json.toString();
+        return json;
     }
 }
