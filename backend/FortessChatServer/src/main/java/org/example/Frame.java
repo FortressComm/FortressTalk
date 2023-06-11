@@ -1,5 +1,6 @@
 package org.example;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -34,7 +35,8 @@ public class Frame {
         }
         try {
             if(messages != null){
-                json.put("messages", messages.stream().map(message ->message.toJsonString()).toList() );
+
+                json.put("messages",new JSONArray(messages.stream().map(message ->message.toJsonString()).toList()) );
             }
 
         } catch (JSONException e) {
@@ -42,7 +44,8 @@ public class Frame {
         }
         try{
             if(chats!=null){
-                json.put("chats", chats.stream().map(chat -> chat.toJsonString()).toList());
+                json.put("chats", new JSONArray(chats.stream().map(chat -> chat.toJsonString()).toList()));
+
             }
         } catch (JSONException e) {
             throw new RuntimeException(e);
