@@ -102,7 +102,10 @@ class ClientThread implements Runnable {
                 // JSON
                 try {
                     JSONObject json = new JSONObject(message);
-                    code = pkpk.decrypt(String.valueOf(json.getString("code")));
+
+
+
+
 
 
                     if(json.has("encryption_mode")){
@@ -140,7 +143,9 @@ class ClientThread implements Runnable {
                         clientPublicKey = encryptor.decrypt(String.valueOf(json.getString("client_public_key")));
                         System.out.println(clientPublicKey);
                     }
-
+                    if(json.has("code")) {
+                        code = encryptor.decrypt(String.valueOf(json.getString("code")));
+                    }
 
 
                 } catch (JSONException e) {
