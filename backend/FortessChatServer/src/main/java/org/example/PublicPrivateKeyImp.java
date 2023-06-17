@@ -14,27 +14,48 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 
-public final class SecurityImp implements SecurityInt {
+public final class PublicPrivateKeyImp implements PublicPrivateKeyInt {
     private KeyPair pair;
+
+
 
     private String privateKeyFileName = "private_key";
     private String publicKeyFileName = "public_key";
 
-    private static volatile SecurityImp instance;
+    private static volatile PublicPrivateKeyImp instance;
 
-    public static SecurityImp getInstance() {
-        SecurityImp result = instance;
+
+
+
+
+    public static PublicPrivateKeyImp getInstance() {
+        PublicPrivateKeyImp result = instance;
         if(result != null){
             return result;
         }
-        synchronized (SecurityImp.class){
+        synchronized (PublicPrivateKeyImp.class){
             if(instance == null){
-                instance = new SecurityImp();
+                instance = new PublicPrivateKeyImp();
             }
             return instance;
         }
     }
-    private SecurityImp(){
+
+    public static PublicKey getPublicKeyFromString(String key){
+        try{
+            byte[] byteKey = Base64.getEncoder().encode(key.getBytes());
+            X509EncodedKeySpec X509publicKey = new X509EncodedKeySpec(byteKey);
+            KeyFactory kf = KeyFactory.getInstance("RSA");
+
+            return kf.generatePublic(X509publicKey);
+        }
+        catch(Exception e){
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+    private PublicPrivateKeyImp(){
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
         //generatePair();
         //savePair();
@@ -56,7 +77,7 @@ public final class SecurityImp implements SecurityInt {
             throw new RuntimeException(e);
         }
         try {
-            encryptCipher.init(Cipher.ENCRYPT_MODE,getPublicKey());
+            encryptCipher.init(Cipher.ENCRYPT_MODE, getPublicKey());
 
             byte[] secretMessageBytes = message.getBytes(StandardCharsets.UTF_8);
             byte[] encryptedMessageBytes = encryptCipher.doFinal(secretMessageBytes);

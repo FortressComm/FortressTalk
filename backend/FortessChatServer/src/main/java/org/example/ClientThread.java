@@ -1,6 +1,5 @@
 package org.example;
 
-import org.apache.tomcat.util.json.JSONParser;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -15,11 +14,11 @@ class ClientThread implements Runnable {
         this.messageServer = messageServer;
 
 
-        securityImp = SecurityImp.getInstance();
+        pkpk = PublicPrivateKeyImp.getInstance();
 
 
     }
-    private SecurityImp securityImp;
+    private PublicPrivateKeyImp pkpk;
     private boolean isAuthorized = false;
     private User user = null;
     static final String CREATE_CHAT = "CREATE_CHAT";
@@ -56,6 +55,8 @@ class ClientThread implements Runnable {
    
     
     private Socket clientSocket;
+    private Encryptor encryptor;
+
     public OutputStream out;
     public InputStream in;
 
@@ -95,34 +96,51 @@ class ClientThread implements Runnable {
                 String login = "";
                 String password = "";
                 String chatId = "";
+                String clientPublicKey = "";
+                String encryptionType = "";
 
                 // JSON
                 try {
                     JSONObject json = new JSONObject(message);
-                    code = securityImp.decrypt(String.valueOf(json.getString("code")));
+                    code = pkpk.decrypt(String.valueOf(json.getString("code")));
 
+
+                    if(json.has("encryption_mode")){
+                        encryptionType = pkpk.decrypt(String.valueOf(json.getString("encryption_mode")));
+                        if(encryptionType.equals("CBC")){
+                            String cbcKey = "";
+                            String initVector = "";
+                            if(json.has("key")){
+                                cbcKey = pkpk.decrypt(String.valueOf(json.getString("key")));
+                            }
+                            if(json.has("init_vector")){
+                                initVector = pkpk.decrypt(String.valueOf(json.getString("init_vector")));
+                            }
+                            encryptor = new CbcEncryptor(cbcKey, initVector);
+                        }
+                        else{
+                            
+                        }
+                    }
                     if(json.has("text")){
-                        text = String.valueOf(json.getString("text"));
+                        text = encryptor.decrypt(String.valueOf(json.getString("text")));
                     }
-
-
-
                     if(json.has("login")) {
-                        login = securityImp.decrypt(String.valueOf(json.getString("login")));
+                        login = encryptor.decrypt(String.valueOf(json.getString("login")));
 
                     }
-
-
                     if(json.has("password")) {
-                        password = securityImp.decrypt(String.valueOf(json.getString("password")));
+                        password = encryptor.decrypt(String.valueOf(json.getString("password")));
 
                     }
-
-
-
                     if(json.has("chat_id")){
-                        chatId = securityImp.decrypt(String.valueOf(json.getString("chat_id")));
+                        chatId = encryptor.decrypt(String.valueOf(json.getString("chat_id")));
                     }
+                    if(json.has("client_public_key")){
+                        clientPublicKey = encryptor.decrypt(String.valueOf(json.getString("client_public_key")));
+                        System.out.println(clientPublicKey);
+                    }
+
 
 
                 } catch (JSONException e) {
@@ -147,7 +165,7 @@ class ClientThread implements Runnable {
                         saveUsers();
                     }
                     else{
-                        sendFrame(out, new Frame(SERVER_AUTH_CODE, "You are already authorized"));
+                        sendFrame(out, new Frame(SERVER_AUTH_CODE, "You are already authorized"),encryptor);
                     }
 
                 }
@@ -156,7 +174,7 @@ class ClientThread implements Runnable {
                         login(login, password);
                     }
                     else{
-                        sendFrame(out, new Frame(SERVER_AUTH_CODE, "You are already authorized"));
+                        sendFrame(out, new Frame(SERVER_AUTH_CODE, "You are already authorized"),encryptor);
                     }
 
                 }
@@ -185,7 +203,7 @@ class ClientThread implements Runnable {
 
                         Frame frame = new Frame(SERVER_MSG_ALL, "");
                         frame.messages = messages;
-                        sendFrame(out, frame);
+                        sendFrame(out, frame,encryptor);
                     }
                     else{
                         sendNoAuthMessage();
@@ -196,7 +214,7 @@ class ClientThread implements Runnable {
                         List<Chat> chats = getAllChatsByUser();
                         Frame frame = new Frame(SERVER_CHATS, "");
                         frame.chats = chats;
-                        sendFrame(out, frame);
+                        sendFrame(out, frame,encryptor);
                     }
                     else{
                         sendNoAuthMessage();
@@ -217,13 +235,13 @@ class ClientThread implements Runnable {
 
     private void sendNoAuthMessage(){
         Frame frame = new Frame(SERVER_AUTH_CODE, "You are not authorized");
-        sendFrame(out, frame);
+        sendFrame(out, frame,encryptor);
     }
 
-    private void sendFrame(OutputStream out, Frame frame) {
+    private void sendFrame(OutputStream out, Frame frame, Encryptor encryptor) {
 
         try {
-            out.write(frame.toJsonString().getBytes(StandardCharsets.UTF_8));
+            out.write(frame.toJsonString(encryptor).getBytes(StandardCharsets.UTF_8));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -243,7 +261,7 @@ class ClientThread implements Runnable {
         this.isAuthorized = true;
         messageServer.users.add(user);
         Frame frame = new Frame(SERVER_REGISTRATION, "thank you for registration");
-        sendFrame(out, frame);
+        sendFrame(out, frame,encryptor);
 
     }
     private void login(String login, String password){
@@ -253,11 +271,11 @@ class ClientThread implements Runnable {
             this.isAuthorized = true;
             this.user = user.get();
             Frame frame = new Frame(SERVER_LOGIN, "You are logged in");
-            sendFrame(out, frame);
+            sendFrame(out, frame,encryptor);
         }
         else{
             Frame frame = new Frame(SERVER_LOGIN_FAILED, "NO SUCH USER");
-            sendFrame(out, frame);
+            sendFrame(out, frame,encryptor);
         }
     }
 
@@ -283,7 +301,7 @@ class ClientThread implements Runnable {
         List<ClientThread> clientSockets = messageServer.clients;
         if(!chat.get().userIds.contains(user.getId())){
             Frame frame = new Frame(SERVER_SECURITY, "YOU ARE NOT ALLOWED TO WRITE IN THIS CHAT");
-            sendFrame(out, frame);
+            sendFrame(out, frame,encryptor);
             return;
         }
         Message m = new Message(user.getId(), chatId, text, textBytes);
@@ -293,11 +311,11 @@ class ClientThread implements Runnable {
         for(ClientThread socket : clientSockets){
             if(clientSocket != socket.clientSocket && chat.get().userIds.contains(socket.user.getId())){
                 Frame frame = new Frame(SERVER_NEW_MESSAGE, text);
-                sendFrame(socket.out, frame);
+                sendFrame(socket.out, frame, encryptor);
             }
             else{
                 Frame frame = new Frame(SERVER_MSG_CHAT, "Message Was sent");
-                sendFrame(socket.out, frame);
+                sendFrame(socket.out, frame, encryptor);
             }
         }
     }
@@ -306,13 +324,13 @@ class ClientThread implements Runnable {
         Optional<Chat> chat = getChatById(chatId);
         if(chat.isEmpty()){
             Frame frame = new Frame(SERVER_UNKNOWN,"NO SUCH CHAT");
-            sendFrame(out, frame);
+            sendFrame(out, frame,encryptor);
             return new ArrayList<>();
         }
         List<ClientThread> clientSockets = messageServer.clients;
         if(!chat.get().userIds.contains(user.getId())){
             Frame frame = new Frame(SERVER_SECURITY,"YOU ARE NOT ALLOWED TO WRITE IN THIS CHAT" );
-            sendFrame(out,frame );
+            sendFrame(out,frame, encryptor);
             return new ArrayList<>();
         }
         return  messageServer.messages.stream().filter(message -> message.getChatId().equals(chatId)).toList();
@@ -335,11 +353,11 @@ class ClientThread implements Runnable {
             c.get().userIds.add(this.user.getId());
 
             Frame frame = new Frame(SERVER_JOINED_CHAT, "You are added to a chat");
-            sendFrame(out, frame);
+            sendFrame(out, frame,encryptor);
         }
         else{
             Frame frame = new Frame(SERVER_UNKNOWN, "NO SUCH CHAT");
-            sendFrame(out, frame);
+            sendFrame(out, frame,encryptor);
         }
     }
     private void saveChats(){
@@ -395,7 +413,7 @@ class ClientThread implements Runnable {
         chat.userIds.add(this.user.getId());
         messageServer.chats.add(chat);
         Frame frame = new Frame(SERVER_CHAT_ID,chat.getId() );
-        sendFrame(out, frame);
+        sendFrame(out, frame,encryptor);
 
         joinChat(chat.getId());
     }

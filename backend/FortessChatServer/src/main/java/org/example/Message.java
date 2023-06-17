@@ -36,21 +36,22 @@ class Message implements Serializable {
         this.id =  UUID.randomUUID().toString();
         this.text = text;
     }
-    public JSONObject toJson(){
+
+    public JSONObject toJson(Encryptor encryptor){
         JSONObject json = new JSONObject();
 
         try {
-            json.put("user_id_from", userFromId);
+            json.put("user_id_from", encryptor.encrypt(userFromId));
         } catch (JSONException e) {
             throw new RuntimeException(e);
         }
         try {
-            json.put("id", id);
+            json.put("id", encryptor.encrypt(id));
         } catch (JSONException e) {
             throw new RuntimeException(e);
         }
         try {
-            json.put("text", text);
+            json.put("text", encryptor.encrypt(text));
         } catch (JSONException e) {
             throw new RuntimeException(e);
         }

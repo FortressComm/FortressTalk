@@ -21,11 +21,11 @@ class Chat implements Serializable {
         this.userIds = new ArrayList<>();
     }
 
-    public JSONObject toJson() {
+    public JSONObject toJson(Encryptor encryptor) {
         JSONObject json = new JSONObject();
 
         try {
-            json.put("id", id);
+            json.put("id", encryptor.encrypt(id));
         } catch (JSONException e) {
             throw new RuntimeException(e);
         }
