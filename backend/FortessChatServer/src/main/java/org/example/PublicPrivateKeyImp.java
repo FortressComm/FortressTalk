@@ -14,7 +14,7 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 
-public final class PublicPrivateKeyImp implements PublicPrivateKeyInt {
+public final class PublicPrivateKeyImp implements Encryptor {
     private KeyPair pair;
 
 
@@ -62,7 +62,6 @@ public final class PublicPrivateKeyImp implements PublicPrivateKeyInt {
         loadPair();
     }
 
-    @Override
     public PublicKey getPublicKey() {
         return pair.getPublic();
     }
