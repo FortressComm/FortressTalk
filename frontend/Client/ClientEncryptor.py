@@ -25,7 +25,7 @@ class ClientEncryptor:
     def add_cipher_fields(self, dict):
         dict['key'] = self.asym_encrypt(self.sym_cipher.key)
         dict['iv'] = self.asym_encrypt(self.sym_cipher.iv)
-        dict['encryption_mode'] = self.asym_encrypt('CBC')
+        dict['encryption_mode'] = self.asym_encrypt(bytes('CBC', 'utf-8'))
 
         return dict
 
@@ -47,5 +47,7 @@ class ClientEncryptor:
             dict[key] = self.sym_encrypt(bytes(dict[key], 'utf-8'))
 
         dict = self.add_cipher_fields(dict)
+
+        print(dict)
 
         return dict

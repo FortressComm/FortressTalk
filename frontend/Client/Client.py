@@ -37,7 +37,7 @@ class Client:
             'code': 'REGISTER',
             'login': login,
             'password': password,
-            'client_public_key': self.client_encryptor.asym_cipher.public_key,
+            'client_public_key': 'self.client_encryptor.asym_cipher.public_key_to_string()',
         })
 
     def send_login(self, login, password):

@@ -46,7 +46,7 @@ class AsymCipher:
             return self.public_key
 
     def public_key_to_string(self):
-        return b64encode(self.public_key.public_bytes(serialization.Encoding.Raw)).decode('utf-8');
+        return b64encode(self.public_key.public_bytes(serialization.Encoding.Raw, format=serialization.PublicFormat.Raw)).decode('utf-8');
 
     def save_public_key(public_key, path_to_public_key):
         pem = public_key.public_bytes(
