@@ -9,10 +9,10 @@ class ClientEncryptor:
         self.sym_cipher = SymCipher()
 
         if bool(path_to_private_key):
-            self.asym_cipher.private_key = AsymCipher.load_private_key(path_to_private_key, password)
+            self.asym_cipher.load_private_key(path_to_private_key, password)
         
         if bool(path_to_foreing_public_key):
-            self.asym_cipher.public_key = AsymCipher.load_public_key(path_to_foreing_public_key)
+            self.asym_cipher.load_public_key(path_to_foreing_public_key)
 
 
     def asym_encrypt(self, data: bytes):
