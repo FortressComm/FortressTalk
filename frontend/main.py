@@ -31,7 +31,6 @@ class ChatApp:
     def init_view(self, root):
         self.root.title("Chat App")
         self.current_user = None
-        self.current_chat = None
 
         # Set window size
         self.root.geometry("400x400")
@@ -134,7 +133,7 @@ class ChatApp:
         self.login_frame.pack_forget()
         self.register_frame.pack_forget()
         self.chat_frame.pack()
-        self.current_chat = self.chat_name_var.get()
+        
 
     def login(self):
         username = self.login_entry.get()
@@ -156,8 +155,9 @@ class ChatApp:
 
     def send_message(self):
         message = self.entry.get()
+        self.client.send_msg(message, self.chat_name_var)
         if message:
-            chat_info = f"{self.current_user} ({self.current_chat}): {message}"
+            chat_info = f"{self.current_user} ({self.chat_name_var.get()}): {message}"
             self.chat_area.configure(state="normal")  # Set text field as editable temporarily
             self.chat_area.insert(tk.END, chat_info + "\n")
             self.chat_area.configure(state="disabled")  # Set text field as read-only again
@@ -166,7 +166,7 @@ class ChatApp:
     def attach_file(self):
         file_path = filedialog.askopenfilename()
         if file_path:
-            chat_info = f"{self.current_user} ({self.current_chat}) attached file: {file_path}"
+            chat_info = f"{self.current_user} ({self.chat_name_var.get()}) attached file: {file_path}"
             self.chat_area.configure(state="normal")  # Set text field as editable temporarily
             self.chat_area.insert(tk.END, chat_info + "\n")
             self.chat_area.configure(state="disabled")  # Set text field as read-only again
@@ -195,10 +195,29 @@ class ChatApp:
         self.chat_frame.pack()
         self.client.send_get_chats()
 
+    def update_options(self):
+        new_options = self.chats  # New list of options
+        
+        if not new_options:
+            return
+        
+        self.chat_name_var.set("")  # Clear the variable
+        self.chat_name_dropdown['menu'].delete(0, 'end')  # Clear the existing options
+        
+        for option in new_options:
+            self.chat_name_dropdown['menu'].add_command(label=option, command=tk._setit(self.chat_name_var, option, self.on_chat_select))
+            # Add the new options to the OptionMenu
+        
+        self.chat_name_var.set(new_options[0])  # Set the default option
+
+    def refreshChats(self, chats):
+        self.chats = []
+        for chat in chats:
+            self.chats.append(chat['id'])
+        self.update_options()
+
     def chats_response(self, data):
-        for chat in data['chats']:
-            print(type(chat))
-            print(chat)
+        self.refreshChats(data['chats'])
 
     def create_chat_resoponse(self, data):
         print(data)
@@ -206,6 +225,9 @@ class ChatApp:
 
     def create_chat(self):
         self.client.send_create_chat()
+
+    def send_msg_response(self, data):
+        print(data)
     
     def show_messagebox(self, title, content):
         messagebox.showinfo(title, content)
@@ -228,10 +250,6 @@ def main():
     # private_key, public_key = AsymCipher.gen_private_public_key()
     # AsymCipher.save_private_key(private_key,'1_private_key.pem', b'123')
     # AsymCipher.save_public_key(public_key,'1_public_key.pem')
-
-    # private_key, public_key = AsymCipher.gen_private_public_key()
-    # AsymCipher.save_private_key(private_key,'2_private_key.pem', b'321')
-    # AsymCipher.save_public_key(public_key,'2_public_key.pem')
 
     # private_key, public_key = AsymCipher.gen_private_public_key()
     # AsymCipher.save_private_key(private_key,'server_private_key.pem', b'321')

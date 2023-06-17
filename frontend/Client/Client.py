@@ -11,9 +11,8 @@ class Client:
         self.host = host
         self.port = port
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.client_encryptor = ClientEncryptor('2_public_key.pem')
+        self.client_encryptor = ClientEncryptor('1_public_key.pem')
         self.server_encryptor = ClientEncryptor('server_nick_public_key.pem')
-        self.other_client_encryptor = ClientEncryptor('1_public_key.pem')
 
     def connect(self):
         self.client_socket.connect((self.host, self.port))
@@ -23,86 +22,58 @@ class Client:
 
     def send(self, data: bytes):
         self.client_socket.sendall(data)
-    
-    def asym_encrypt(self, data: str) -> str:
-        return b64encode(self.server_encryptor.only_asym_encrypt(bytes(data, 'utf-8'))).decode('utf-8')
-    
-    def sym_asym_encrypt(self, data: str) -> str:
-        return b64encode(self.client_encryptor.get_bytes_to_send(bytes(data, 'utf-8'))).decode('utf-8')
-
-    def encrypt_dict(self, dict):
-        for key in dict:
-            dict[key] = self.asym_encrypt(dict[key])
-        return dict
             
-    def get_dict_bytes(self, dict):
+    def dict_to_json_bytes(self, dict):
+        for key in dict:
+            dict[key] = b64encode(dict[key]).decode('utf-8')
+
         return bytes(json.dumps(dict, indent = 4), 'utf-8')
 
+    def send_json_bytes(self, dict):
+        self.send(self.dict_to_json_bytes(self.server_encryptor.encrypt_dict(dict)))
+
     def send_register(self, login, password):
-        return self.send(self.get_dict_bytes(self.encrypt_dict({
+        self.send_json_bytes({
             'code': 'REGISTER',
             'login': login,
             'password': password,
-        })))
+            'client_public_key': self.client_encryptor.asym_cipher.public_key,
+        })
 
     def send_login(self, login, password):
-        return self.send(self.get_dict_bytes(self.encrypt_dict({
+        self.send_json_bytes({
             'code': 'LOGIN',
             'login': login,
             'password': password,
-        })))
+        })
 
     def send_msg(self, msg, chat_id):
-        return self.send(self.get_dict_bytes({
+        self.send_json_bytes({
             'text': self.sym_asym_encrypt(msg),
             'code': self.asym_encrypt('WRITE_TO_CHAT'),
             'chat_id': self.asym_encrypt(chat_id),
-        }))
+        })
 
     def send_join_chat(self, chat_id):
-        return self.send(self.get_dict_bytes(self.encrypt_dict({
+        self.send_json_bytes({
             'code': 'JOIN_CHAT',
             'chat_id': chat_id,
-        })))
+        })
 
     def send_create_chat(self):
-        return self.send(self.get_dict_bytes(self.encrypt_dict({
+        self.send_json_bytes({
             'code': 'CREATE_CHAT',
-        })))
+        })
     
     def send_get_msg(self):
-        return self.send(self.get_dict_bytes(self.encrypt_dict({
+        self.send_json_bytes({
             'code': 'GET_CHAT_MESSAGES',
-        })))
+        })
 
     def send_get_chats(self):
-        return self.send(self.get_dict_bytes(self.encrypt_dict({
+        self.send_json_bytes({
             'code': 'GET_CHATS',
-        })))
-    
-    
-    # def create_json_bytes(self, code, msg):
-    #     login = 'vlad'
-    #     password = 'bog'
-    #     chat_id = '26820a39-a764-439b-b1c8-ae78cd7eda04'
-    #     m = {
-    #         'text': self.sym_asym_encrypt(msg),
-    #         'code': self.asym_encrypt(code),
-    #         'login': self.asym_encrypt(login),
-    #         'password': self.asym_encrypt(password),
-    #         'chat_id': self.asym_encrypt(chat_id),
-    #     }
-
-    #     json_object = json.dumps(m, indent = 4)
-
-    #     return bytes(json_object, 'utf-8')
-
-    # def sender_func(self):
-    #     while True:
-    #         code = input("What code:")
-    #         message = input("Send this to server:")       
-            
-    #         self.send(self.create_json_bytes(code, message))
+        })
 
     def reciever_func(self):        
         while True:
@@ -118,7 +89,7 @@ class Client:
                 case 'SERVER_NEW_MESSAGE':
                     text = data['text']
                     text = b64decode(text)
-                    print(self.other_client_encryptor.get_recieved_msg(text))    
+                    # print(self.other_client_encryptor.get_recieved_msg(text))    
                 case 'SERVER_REGISTRATION':
                     self.app.register_success(data)
                 case 'SERVER_LOGIN':
@@ -129,6 +100,8 @@ class Client:
                     self.app.chats_response(data)
                 case 'SERVER_CHAT_ID':
                     self.app.create_chat_resoponse(data)
+                case 'SERVER_MSG_CHAT':
+                    self.app.send_msg_response(data)
                 case _:
                     self.app.show_messagebox("Error", data['code'])  
     

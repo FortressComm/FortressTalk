@@ -6,7 +6,7 @@ class AsymCipher:
 
     def __init__(self):
         self.private_key = None
-        self.foreign_public_key = None
+        self.public_key = None
         self.password = None
         self.padd = padding.OAEP(
                 mgf=padding.MGF1(algorithm=hashes.SHA256()),
@@ -15,7 +15,7 @@ class AsymCipher:
             )      
     
     def encrypt(self, data: bytes):
-        ciphertext = self.foreign_public_key.encrypt(
+        ciphertext = self.public_key.encrypt(
             data,
             self.padd
         )
