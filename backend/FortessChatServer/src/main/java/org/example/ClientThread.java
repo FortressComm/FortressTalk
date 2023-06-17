@@ -48,6 +48,8 @@ class ClientThread implements Runnable {
     static final String SERVER_CHAT_ID = "SERVER_CHAT_ID";
     static final String SERVER_MSG_CHAT = "SERVER_MSG_CHAT";
 
+    static final String SERVER_JOINED_CHAT = "SERVER_JOINED_CHAT";
+
 
 
     MessageServer messageServer;
@@ -332,7 +334,7 @@ class ClientThread implements Runnable {
         if(c.isPresent()){
             c.get().userIds.add(this.user.getId());
 
-            Frame frame = new Frame(SERVER_MSG_CHAT, "You are added to a chat");
+            Frame frame = new Frame(SERVER_JOINED_CHAT, "You are added to a chat");
             sendFrame(out, frame);
         }
         else{
