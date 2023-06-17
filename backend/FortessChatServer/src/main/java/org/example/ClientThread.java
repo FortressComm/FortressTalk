@@ -119,7 +119,7 @@ class ClientThread implements Runnable {
                             }
                             if(json.has("iv")){
                                 initVector = pkpk.decrypt(String.valueOf(json.getString("iv")));
-                                System.out.println(initVector);
+                                System.out.println("iv: " + initVector);
                             }
                             encryptor = new CbcEncryptor(cbcKey, initVector);
                         }

@@ -23,6 +23,9 @@ class ClientEncryptor:
         return bytes(self.sym_cipher.encrypt(message))
 
     def add_cipher_fields(self, dict):
+        # print(self.sym_cipher.key)
+        # print(b64encode(self.sym_cipher.iv).decode('utf-8'))
+ 
         dict['key'] = self.asym_encrypt(self.sym_cipher.key)
         dict['iv'] = self.asym_encrypt(self.sym_cipher.iv)
         dict['encryption_mode'] = self.asym_encrypt(bytes('CBC', 'utf-8'))
@@ -43,11 +46,14 @@ class ClientEncryptor:
     def encrypt_dict(self, dict):
         self.sym_cipher.gen_key_iv()
 
+
+
         for key in dict:
+            # print(dict[key])
             dict[key] = self.sym_encrypt(bytes(dict[key], 'utf-8'))
 
         dict = self.add_cipher_fields(dict)
 
-        print(dict)
+        
 
         return dict
