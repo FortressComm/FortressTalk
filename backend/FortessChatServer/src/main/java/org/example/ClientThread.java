@@ -169,7 +169,7 @@ class ClientThread implements Runnable {
                 }
                 else if(code.equals(REGISTER)){
                     if(!isAuthorized) {
-                        register(login, password);
+                        register(login, password, clientPublicKey);
                         saveUsers();
                     }
                     else{
@@ -262,9 +262,9 @@ class ClientThread implements Runnable {
         return message.split("&");
     }
 
-    private void register(String login, String password){
+    private void register(String login, String password,String publicKey){
 
-        User user = new User(login, password);
+        User user = new User(login, password, publicKey);
         this.user = user;
         this.isAuthorized = true;
         messageServer.users.add(user);

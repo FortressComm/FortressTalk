@@ -14,7 +14,7 @@ public class Frame {
     List<Message> messages;
     List<Chat> chats;
 
-    PublicPrivateKeyImp securityImp;
+
     public Frame(){
 
     }
@@ -30,6 +30,18 @@ public class Frame {
         } catch (JSONException e) {
             throw new RuntimeException(e);
         }
+        try {
+            json.put("cbcKey", encryptor.encrypt(cbcKey));
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
+        }
+        try {
+            json.put("initVector", encryptor.encrypt(initVector));
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
+        }
+
+
         try {
             json.put("text", encryptor.encrypt(message));
         } catch (JSONException e) {
@@ -47,7 +59,6 @@ public class Frame {
         try{
             if(chats!=null){
                 json.put("chats", new JSONArray(chats.stream().map(chat -> chat.toJson(encryptor)).toList()));
-
             }
         } catch (JSONException e) {
             throw new RuntimeException(e);
