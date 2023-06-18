@@ -1,10 +1,12 @@
 package org.example;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.*;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
@@ -91,7 +93,22 @@ class ClientThread implements Runnable {
 
         return jsonBytesList;
     }
-
+    private static boolean isCompleteJSON(byte[] jsonData) {
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            mapper.readTree(jsonData);
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+    private static int getTotalBytesLength(List<byte[]> byteList) {
+        int totalBytes = 0;
+        for (byte[] byteArray : byteList) {
+            totalBytes += byteArray.length;
+        }
+        return totalBytes;
+    }
     public void run() {
 
         try {
@@ -112,15 +129,39 @@ class ClientThread implements Runnable {
         byte[] buffer = new byte[100000];
         int bytesRead = 0;
 
+        int offset = 0;
         while (true) {
             try {
-                if (!((bytesRead = in.read(buffer)) >= 0)) break;
+                if (!((bytesRead = in.read(buffer,offset,buffer.length)) >= 0)) break;
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
             if (bytesRead > 0) {
                 var bufferReadBytes = Arrays.copyOfRange(buffer, 0, bytesRead);
-                for(var messageBytes : splitBytes(bufferReadBytes)){
+
+
+                List<byte[]> splitedBytes =splitBytes(bufferReadBytes);
+                int normalBytesLen = getTotalBytesLength(splitedBytes);
+
+                if(normalBytesLen != bufferReadBytes.length){
+
+                    byte brokenJson[] = Arrays.copyOfRange(bufferReadBytes, normalBytesLen, bufferReadBytes.length);
+                    int brokenJsonLen = brokenJson.length;
+                    offset = brokenJsonLen;
+
+                    buffer = new byte[100000];
+                    ByteBuffer sourceBuffer = ByteBuffer.wrap(brokenJson);
+                    ByteBuffer destinationBuffer = ByteBuffer.wrap(buffer);
+                    destinationBuffer.put(sourceBuffer);
+                }
+                else{
+                    offset =0;
+                }
+
+
+
+
+                for(var messageBytes : splitedBytes){
                     //
 
                     String message = new String(messageBytes, StandardCharsets.UTF_8);
