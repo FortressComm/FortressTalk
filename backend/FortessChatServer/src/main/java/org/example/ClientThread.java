@@ -249,7 +249,7 @@ class ClientThread implements Runnable {
     private void sendFrame(User user,OutputStream out, Frame frame, Encryptor encryptor) {
 
         try {
-            out.write(frame.toJsonString(encryptor).getBytes(StandardCharsets.UTF_8));
+            out.write(frame.toJsonString(user.publicKey, encryptor).getBytes(StandardCharsets.UTF_8));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
