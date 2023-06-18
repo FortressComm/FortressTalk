@@ -25,15 +25,16 @@ class Client:
         self.client_socket.sendall(data)
             
     def file_transfer(self, file_path):
-        file_size = os.path.getsize(file_path)
+        chunk_size = 256
+        file_size = str(os.path.getsize(file_path))
         file_name = os.path.basename(file_path)
         self.send_transfer_start(file_size, file_name)
         with open(file_path, 'rb') as file:
-            chunk = file.read(1024)
+            chunk = file.read(chunk_size)
           
             while chunk:
                 self.send_transfer_chunk(chunk)
-                chunk = file.read(1024)
+                chunk = file.read(chunk_size)
         
         self.send_transfer_end()
 

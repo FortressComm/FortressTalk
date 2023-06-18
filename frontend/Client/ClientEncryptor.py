@@ -36,7 +36,10 @@ class ClientEncryptor:
         self.sym_cipher.gen_key_iv()
 
         for key in dict:
-            dict[key] = self.sym_encrypt(bytes(dict[key], 'utf-8'))
+            if key == 'chunk':
+                dict[key] = self.sym_encrypt(dict[key])
+            else:
+                dict[key] = self.sym_encrypt(bytes(dict[key], 'utf-8'))
 
         dict = self.add_cipher_fields(dict)  
 

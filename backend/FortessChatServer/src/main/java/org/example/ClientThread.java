@@ -139,7 +139,7 @@ class ClientThread implements Runnable {
                     }
 
                     if(json.has("expected_size")){
-                        expectedSizeInBytes =  Long.valueOf(encryptor.decrypt(json.getString("file_name")));
+                        expectedSizeInBytes =  Long.valueOf(encryptor.decrypt(json.getString("expected_size")));
                     }
                     if(json.has("file_name")){
                         fileName = encryptor.decrypt(String.valueOf(json.getString("file_name")));
