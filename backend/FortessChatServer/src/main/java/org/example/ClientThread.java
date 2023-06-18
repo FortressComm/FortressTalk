@@ -68,6 +68,30 @@ class ClientThread implements Runnable {
     public OutputStream out;
     public InputStream in;
     public FileManager fileManager;
+
+    private static List<byte[]> splitBytes(byte[] bytes) {
+        List<byte[]> jsonBytesList = new ArrayList<>();
+        int start = 0;
+        int nestingLevel = 0;
+
+        for (int i = 0; i < bytes.length; i++) {
+            if (bytes[i] == '{') {
+                nestingLevel++;
+            } else if (bytes[i] == '}') {
+                nestingLevel--;
+                if (nestingLevel == 0) {
+                    int end = i + 1;
+                    byte[] jsonBytes = new byte[end - start];
+                    System.arraycopy(bytes, start, jsonBytes, 0, end - start);
+                    jsonBytesList.add(jsonBytes);
+                    start = end;
+                }
+            }
+        }
+
+        return jsonBytesList;
+    }
+
     public void run() {
 
         try {
@@ -95,170 +119,174 @@ class ClientThread implements Runnable {
                 throw new RuntimeException(e);
             }
             if (bytesRead > 0) {
-                var messageBytes = Arrays.copyOfRange(buffer, 0, bytesRead);
+                var bufferReadBytes = Arrays.copyOfRange(buffer, 0, bytesRead);
+                for(var messageBytes : splitBytes(bufferReadBytes)){
+                    //
 
-                String message = new String(messageBytes, StandardCharsets.UTF_8);
+                    String message = new String(messageBytes, StandardCharsets.UTF_8);
 
-                String code = "";
-                String text = "";
-                String login = "";
-                String password = "";
-                String chatId = "";
-                String clientPublicKey = "";
-                String encryptionType = "";
-                String fileName = "";
-                long expectedSizeInBytes = 0;
-                byte[] chunk = new byte[]{};;
+                    String code = "";
+                    String text = "";
+                    String login = "";
+                    String password = "";
+                    String chatId = "";
+                    String clientPublicKey = "";
+                    String encryptionType = "";
+                    String fileName = "";
+                    long expectedSizeInBytes = 0;
+                    byte[] chunk = new byte[]{};;
 
-                // JSON
-                try {
-                    JSONObject json = new JSONObject(message);
+                    // JSON
+                    try {
+                        JSONObject json = new JSONObject(message);
 
 
-                    if(json.has("encryption_mode")){
-                        encryptionType = pkpk.decrypt(String.valueOf(json.getString("encryption_mode")));
-                        if(encryptionType.equals("CBC")){
-                            byte[] cbcKey = new byte[]{};
-                            byte[] initVector =new byte[]{};
-                            if(json.has("key")){
-                                cbcKey = pkpk.decrypt(json.getString("key").getBytes());
-                                System.out.println(cbcKey);
+                        if(json.has("encryption_mode")){
+                            encryptionType = pkpk.decrypt(String.valueOf(json.getString("encryption_mode")));
+                            if(encryptionType.equals("CBC")){
+                                byte[] cbcKey = new byte[]{};
+                                byte[] initVector =new byte[]{};
+                                if(json.has("key")){
+                                    cbcKey = pkpk.decrypt(json.getString("key").getBytes());
+                                    System.out.println(cbcKey);
+                                }
+                                if(json.has("iv")){
+                                    initVector = pkpk.decrypt(json.getString("iv").getBytes());
+                                    System.out.println("iv: " + initVector);
+                                }
+                                encryptor = new CbcEncryptor(cbcKey, initVector);
                             }
-                            if(json.has("iv")){
-                                initVector = pkpk.decrypt(json.getString("iv").getBytes());
-                                System.out.println("iv: " + initVector);
+                            else{
+
                             }
-                            encryptor = new CbcEncryptor(cbcKey, initVector);
+                        }
+                        if(json.has("chunk")){
+                            chunk = encryptor.decrypt(json.getString("chunk").getBytes());
+                        }
+
+                        if(json.has("expected_size")){
+                            expectedSizeInBytes =  Long.valueOf(encryptor.decrypt(json.getString("expected_size")));
+                        }
+                        if(json.has("file_name")){
+                            fileName = encryptor.decrypt(String.valueOf(json.getString("file_name")));
+                        }
+                        if(json.has("text")){
+                            text = encryptor.decrypt(String.valueOf(json.getString("text")));
+                        }
+                        if(json.has("login")) {
+                            login = encryptor.decrypt(String.valueOf(json.getString("login")));
+                            System.out.println(login);
+
+                        }
+                        if(json.has("password")) {
+                            password = encryptor.decrypt(String.valueOf(json.getString("password")));
+
+                        }
+                        if(json.has("chat_id")){
+                            chatId = encryptor.decrypt(String.valueOf(json.getString("chat_id")));
+                        }
+                        if(json.has("client_public_key")){
+                            clientPublicKey = encryptor.decrypt(String.valueOf(json.getString("client_public_key")));
+                            System.out.println(clientPublicKey);
+                        }
+                        if(json.has("code")) {
+                            code = encryptor.decrypt(String.valueOf(json.getString("code")));
+                        }
+
+
+                    } catch (JSONException e) {
+                        throw new RuntimeException(e);
+                    }
+
+
+
+                    if (code.equals(CREATE_CHAT)) {
+                        if(isAuthorized){
+                            createChat();
+                            saveChats();
                         }
                         else{
-                            
+                            sendNoAuthMessage();
+                        }
+
+                    }
+                    else if(code.equals(START_SEND)){
+                        fileManager = new FileManager(fileName, this, expectedSizeInBytes);
+                    }
+                    else if(code.equals(SEND)){
+                        fileManager.appendChunk(chunk);
+
+                    }
+                    else if(code.equals(END_SEND)){
+                        fileManager.close();
+                    }
+                    else if(code.equals(REGISTER)){
+                        if(!isAuthorized) {
+                            register(login, password, clientPublicKey);
+                            saveUsers();
+                        }
+                        else{
+                            sendFrame(this.user,out, new Frame(SERVER_AUTH_CODE, "You are already authorized"),encryptor);
+                        }
+
+                    }
+                    else if(code.equals(LOGIN)){
+                        if(!isAuthorized){
+                            login(login, password, clientPublicKey);
+                        }
+                        else{
+                            sendFrame(this.user,out, new Frame(SERVER_AUTH_CODE, "You are already authorized"),encryptor);
+                        }
+
+                    }
+                    else if (code.equals(JOIN_CHAT)) {
+                        if(isAuthorized) {
+                            joinChat(chatId);
+                            saveChats();
+                        }
+                        else{
+                            sendNoAuthMessage();
+                        }
+
+                    }
+                    else if(code.equals(WRITE_TO_CHAT)){
+                        if(isAuthorized){
+                            writeToChat(chatId, text,messageBytes);
+
+                        }
+                        else{
+                            sendNoAuthMessage();
                         }
                     }
-                    if(json.has("chunk")){
-                        chunk = encryptor.decrypt(json.getString("chunk").getBytes());
-                    }
+                    else if(code.equals(GET_CHAT_MESSAGES)){
+                        if(isAuthorized){
+                            List<Message> messages = getAllMessagesFromChat(chatId);
 
-                    if(json.has("expected_size")){
-                        expectedSizeInBytes =  Long.valueOf(encryptor.decrypt(json.getString("expected_size")));
+                            Frame frame = new Frame(SERVER_MSG_ALL, "");
+                            frame.messages = messages;
+                            sendFrame(this.user,out, frame,encryptor);
+                        }
+                        else{
+                            sendNoAuthMessage();
+                        }
                     }
-                    if(json.has("file_name")){
-                        fileName = encryptor.decrypt(String.valueOf(json.getString("file_name")));
+                    else if(code.equals(GET_CHATS)){
+                        if(isAuthorized){
+                            List<Chat> chats = getAllChatsByUser();
+                            Frame frame = new Frame(SERVER_CHATS, "");
+                            frame.chats = chats;
+                            sendFrame(this.user,out, frame,encryptor);
+                        }
+                        else{
+                            sendNoAuthMessage();
+                        }
                     }
-                    if(json.has("text")){
-                        text = encryptor.decrypt(String.valueOf(json.getString("text")));
-                    }
-                    if(json.has("login")) {
-                        login = encryptor.decrypt(String.valueOf(json.getString("login")));
-                        System.out.println(login);
+                    else {
 
+                        unknownMessage(messageBytes);
                     }
-                    if(json.has("password")) {
-                        password = encryptor.decrypt(String.valueOf(json.getString("password")));
-
-                    }
-                    if(json.has("chat_id")){
-                        chatId = encryptor.decrypt(String.valueOf(json.getString("chat_id")));
-                    }
-                    if(json.has("client_public_key")){
-                        clientPublicKey = encryptor.decrypt(String.valueOf(json.getString("client_public_key")));
-                        System.out.println(clientPublicKey);
-                    }
-                    if(json.has("code")) {
-                        code = encryptor.decrypt(String.valueOf(json.getString("code")));
-                    }
-
-
-                } catch (JSONException e) {
-                    throw new RuntimeException(e);
                 }
 
-
-
-                if (code.equals(CREATE_CHAT)) {
-                    if(isAuthorized){
-                        createChat();
-                        saveChats();
-                    }
-                    else{
-                        sendNoAuthMessage();
-                    }
-
-                }
-                else if(code.equals(START_SEND)){
-                    fileManager = new FileManager(fileName, this, expectedSizeInBytes);
-                }
-                else if(code.equals(SEND)){
-                    fileManager.appendChunk(chunk);
-
-                }
-                else if(code.equals(END_SEND)){
-                    fileManager.close();
-                }
-                else if(code.equals(REGISTER)){
-                    if(!isAuthorized) {
-                        register(login, password, clientPublicKey);
-                        saveUsers();
-                    }
-                    else{
-                        sendFrame(this.user,out, new Frame(SERVER_AUTH_CODE, "You are already authorized"),encryptor);
-                    }
-
-                }
-                else if(code.equals(LOGIN)){
-                    if(!isAuthorized){
-                        login(login, password, clientPublicKey);
-                    }
-                    else{
-                        sendFrame(this.user,out, new Frame(SERVER_AUTH_CODE, "You are already authorized"),encryptor);
-                    }
-
-                }
-                else if (code.equals(JOIN_CHAT)) {
-                    if(isAuthorized) {
-                        joinChat(chatId);
-                        saveChats();
-                    }
-                    else{
-                        sendNoAuthMessage();
-                    }
-
-                }
-                else if(code.equals(WRITE_TO_CHAT)){
-                    if(isAuthorized){
-                        writeToChat(chatId, text,messageBytes);
-
-                    }
-                    else{
-                        sendNoAuthMessage();
-                    }
-                }
-                else if(code.equals(GET_CHAT_MESSAGES)){
-                    if(isAuthorized){
-                        List<Message> messages = getAllMessagesFromChat(chatId);
-
-                        Frame frame = new Frame(SERVER_MSG_ALL, "");
-                        frame.messages = messages;
-                        sendFrame(this.user,out, frame,encryptor);
-                    }
-                    else{
-                        sendNoAuthMessage();
-                    }
-                }
-                else if(code.equals(GET_CHATS)){
-                    if(isAuthorized){
-                        List<Chat> chats = getAllChatsByUser();
-                        Frame frame = new Frame(SERVER_CHATS, "");
-                        frame.chats = chats;
-                        sendFrame(this.user,out, frame,encryptor);
-                    }
-                    else{
-                        sendNoAuthMessage();
-                    }
-                }
-                else {
-
-                    unknownMessage(messageBytes);
-                }
             }
         }
 
