@@ -1,6 +1,7 @@
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
+from base64 import b64encode, b64decode
 
 class AsymCipher:       
 
@@ -38,9 +39,14 @@ class AsymCipher:
 
         return (private_key, private_key.public_key())
 
-    def load_public_key(path_to_public_key):
+    def load_public_key(self, path_to_public_key):
         with open(path_to_public_key, "rb") as key_file:
-            return serialization.load_pem_public_key(key_file.read())
+            self.public_key =  serialization.load_pem_public_key(key_file.read())
+
+            return self.public_key
+
+    def public_key_to_string(self):
+        return b64encode(self.public_key.public_bytes(serialization.Encoding.Raw, format=serialization.PublicFormat.Raw)).decode('utf-8');
 
     def save_public_key(public_key, path_to_public_key):
         pem = public_key.public_bytes(
@@ -50,12 +56,13 @@ class AsymCipher:
         with open(path_to_public_key, 'wb') as file:
             file.write(pem)
 
-    def load_private_key(path_to_private_key, password):
+    def load_private_key(self, path_to_private_key, password):
         with open(path_to_private_key, "rb") as key_file:
-            return serialization.load_pem_private_key(
+            self.private_key = serialization.load_pem_private_key(
             key_file.read(),
             password,
             )
+            return self.private_key
             
     def save_private_key(private_key, path_to_private_key, password):
         pem = private_key.private_bytes(

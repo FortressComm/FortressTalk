@@ -16,8 +16,8 @@ public class CbcEncryptor implements Encryptor{
     }
     public String encrypt( String value) {
         try {
-            IvParameterSpec iv = new IvParameterSpec(initVector.getBytes("UTF-8"));
-            SecretKeySpec skeySpec = new SecretKeySpec(cbcKey.getBytes("UTF-8"), "AES");
+            IvParameterSpec iv = new IvParameterSpec(Base64.getDecoder().decode(initVector.getBytes("UTF-8")));
+            SecretKeySpec skeySpec = new SecretKeySpec(Base64.getDecoder().decode(cbcKey.getBytes("UTF-8")), "AES");
 
             Cipher cipher = Cipher.getInstance(transformation);
             cipher.init(Cipher.ENCRYPT_MODE, skeySpec, iv);
@@ -31,8 +31,8 @@ public class CbcEncryptor implements Encryptor{
     }
     public  String decrypt(String encrypted) {
         try {
-            IvParameterSpec iv = new IvParameterSpec(initVector.getBytes("UTF-8"));
-            SecretKeySpec skeySpec = new SecretKeySpec(cbcKey.getBytes("UTF-8"), "AES");
+            IvParameterSpec iv = new IvParameterSpec(Base64.getDecoder().decode(initVector.getBytes("UTF-8")));
+            SecretKeySpec skeySpec = new SecretKeySpec(Base64.getDecoder().decode(cbcKey.getBytes("UTF-8")), "AES");
 
             Cipher cipher = Cipher.getInstance(transformation);
             cipher.init(Cipher.DECRYPT_MODE, skeySpec, iv);

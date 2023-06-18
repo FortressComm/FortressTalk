@@ -9,10 +9,10 @@ class ClientEncryptor:
         self.sym_cipher = SymCipher()
 
         if bool(path_to_private_key):
-            self.asym_cipher.private_key = AsymCipher.load_private_key(path_to_private_key, password)
+            self.asym_cipher.load_private_key(path_to_private_key, password)
         
         if bool(path_to_foreing_public_key):
-            self.asym_cipher.public_key = AsymCipher.load_public_key(path_to_foreing_public_key)
+            self.asym_cipher.load_public_key(path_to_foreing_public_key)
 
 
     def asym_encrypt(self, data: bytes):
@@ -23,9 +23,12 @@ class ClientEncryptor:
         return bytes(self.sym_cipher.encrypt(message))
 
     def add_cipher_fields(self, dict):
+        # print(self.sym_cipher.key)
+        # print(b64encode(self.sym_cipher.iv).decode('utf-8'))
+ 
         dict['key'] = self.asym_encrypt(self.sym_cipher.key)
         dict['iv'] = self.asym_encrypt(self.sym_cipher.iv)
-        dict['encryption_mode'] = self.asym_encrypt('CBC')
+        dict['encryption_mode'] = self.asym_encrypt(bytes('CBC', 'utf-8'))
 
         return dict
 
@@ -43,9 +46,14 @@ class ClientEncryptor:
     def encrypt_dict(self, dict):
         self.sym_cipher.gen_key_iv()
 
+
+
         for key in dict:
+            # print(dict[key])
             dict[key] = self.sym_encrypt(bytes(dict[key], 'utf-8'))
 
         dict = self.add_cipher_fields(dict)
+
+        
 
         return dict
