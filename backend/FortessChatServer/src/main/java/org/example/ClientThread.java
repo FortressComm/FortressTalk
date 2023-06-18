@@ -111,14 +111,14 @@ class ClientThread implements Runnable {
                     if(json.has("encryption_mode")){
                         encryptionType = pkpk.decrypt(String.valueOf(json.getString("encryption_mode")));
                         if(encryptionType.equals("CBC")){
-                            String cbcKey = "";
-                            String initVector = "";
+                            byte[] cbcKey = new byte[]{};
+                            byte[] initVector =new byte[]{};
                             if(json.has("key")){
-                                cbcKey = pkpk.decrypt(String.valueOf(json.getString("key")));
+                                cbcKey = pkpk.decrypt(json.getString("key").getBytes());
                                 System.out.println(cbcKey);
                             }
                             if(json.has("iv")){
-                                initVector = pkpk.decrypt(String.valueOf(json.getString("iv")));
+                                initVector = pkpk.decrypt(json.getString("iv").getBytes());
                                 System.out.println("iv: " + initVector);
                             }
                             encryptor = new CbcEncryptor(cbcKey, initVector);
