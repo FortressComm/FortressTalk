@@ -102,7 +102,7 @@ public final class PublicPrivateKeyImp implements Encryptor {
             byte[] secretMessageBytes = message.getBytes(StandardCharsets.UTF_8);
             byte[] encryptedMessageBytes = encryptCipher.doFinal(secretMessageBytes);
 
-            String encodedMessage = Base64.getEncoder().encodeToString(encryptedMessageBytes);
+            String encodedMessage = new String(Base64.getEncoder().encode(encryptedMessageBytes), StandardCharsets.UTF_8);
             return encodedMessage;
 
         } catch (InvalidKeyException e) {

@@ -5,9 +5,10 @@ import pickle
 
 class SymCipher:
 
-    def __init__(self):
-        self.key = None
-        self.iv = None
+    def __init__(self, key = None, iv = None, encryption_mode = None):
+        self.key = key
+        self.iv = iv
+        self.encryption_mode = encryption_mode
         self.cipher = None
         self.block_size = None
 
@@ -19,6 +20,8 @@ class SymCipher:
     def gen_cipher(self):
         self.cipher = Cipher(algorithms.AES(self.key), modes.CBC(self.iv))
         self.block_size = algorithms.AES.block_size
+
+        return self
 
     def encrypt(self, data: bytes):
         padder = padding.PKCS7(self.block_size).padder()

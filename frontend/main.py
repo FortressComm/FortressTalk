@@ -6,10 +6,22 @@ from Client.Client import Client
 import time
 
 
+# class Chat:
+#     def __init__(self, chat_id):
+#         self.chat_id = chat_id
+#         self.msgs = []
+
+class Msg:
+    def __init__(self, content, user_id_from):
+        self.content = content
+        self.user_id_from = user_id_from
+
 class ChatApp:
     def __init__(self, root):
         self.root = root
         self.chats = []
+        self.msgs: list[Msg] = []
+        self.my_id = None
         self.connect()
         self.init_view(root)
         self.root_settings()
@@ -77,6 +89,9 @@ class ChatApp:
 
         self.attach_button = tk.Button(self.chat_frame, text="Attach File", command=self.attach_file)
         self.attach_button.grid(row=2, column=1, padx=80, pady=10, sticky="W")
+
+        self.attach_button = tk.Button(self.chat_frame, text="Join Chat", command=self.join_chat)
+        self.attach_button.grid(row=2, column=1, padx=220, pady=10, sticky="W")
 
         # Create login page
         self.login_frame = tk.Frame(self.root, width=400, height=400)
@@ -153,15 +168,21 @@ class ChatApp:
             self.client.send_register(username, password)
             
 
+    def refresh_messages(self):
+        self.chat_area.configure(state="normal")  # Set text field as editable temporarily
+        self.chat_area.delete('1.0', tk.END)
+        for msg in self.msgs:
+            chat_info = f"{msg.user_id_from[:3]} ({self.chat_name_var.get()[:3]}): {msg.content}"
+            self.chat_area.insert(tk.END, chat_info + "\n")
+        self.chat_area.configure(state="disabled")  # Set text field as read-only again
+        self.entry.delete(0, tk.END)
+
     def send_message(self):
         message = self.entry.get()
-        self.client.send_msg(message, self.chat_name_var)
         if message:
-            chat_info = f"{self.current_user} ({self.chat_name_var.get()}): {message}"
-            self.chat_area.configure(state="normal")  # Set text field as editable temporarily
-            self.chat_area.insert(tk.END, chat_info + "\n")
-            self.chat_area.configure(state="disabled")  # Set text field as read-only again
-            self.entry.delete(0, tk.END)
+            self.msgs.append(Msg(message, self.my_id))
+            self.client.send_msg(message, self.chat_name_var.get())
+            self.refresh_messages()
 
     def attach_file(self):
         file_path = filedialog.askopenfilename()
@@ -179,8 +200,7 @@ class ChatApp:
 
     def register_success(self, data):
         self.show_messagebox("SERVER_REGISTRATION", data['text'])
-        self.register_frame.pack_forget()
-        self.chat_frame.pack()
+        self.show_chat_page()
 
     def register_failed(self, data):
         self.current_user = None
@@ -191,8 +211,8 @@ class ChatApp:
 
     def login_success(self, data):
         self.show_messagebox("SERVER_LOGIN", data['text'])
-        self.login_frame.pack_forget()
-        self.chat_frame.pack()
+        self.my_id = data['user_id']
+        self.show_chat_page()
         self.client.send_get_chats()
 
     def update_options(self):
@@ -210,25 +230,41 @@ class ChatApp:
         
         self.chat_name_var.set(new_options[0])  # Set the default option
 
-    def refreshChats(self, chats):
+    def load_messages(self):
+        self.client.send_get_msg(self.chat_name_var.get())
+
+    def refresh_chats(self, chats):
         self.chats = []
         for chat in chats:
             self.chats.append(chat['id'])
         self.update_options()
+        self.load_messages()
+
+    def joined_chat_response(self):
+        self.client.send_get_chats()
 
     def chats_response(self, data):
-        self.refreshChats(data['chats'])
+        self.refresh_chats(data['chats'])
 
-    def create_chat_resoponse(self, data):
-        print(data)
+    def create_chat_response(self, data):
         self.client.send_get_chats()
 
     def create_chat(self):
         self.client.send_create_chat()
 
+    def join_chat(self):
+        self.client.send_join_chat(self.entry.get())
+
     def send_msg_response(self, data):
-        print(data)
+        self.show_messagebox(data['code'], data['text'])
+        pass
     
+    def all_mgs_response(self, dict):
+        msgs = dict['messages']
+        for msg in msgs:
+            self.msgs.append(Msg(msg['text'], msg['user_id_from']))
+        self.refresh_messages()
+
     def show_messagebox(self, title, content):
         messagebox.showinfo(title, content)
 

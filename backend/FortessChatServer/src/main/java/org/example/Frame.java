@@ -13,6 +13,7 @@ import java.util.Map;
 public class Frame {
     String code;
     String message;
+    String userId;
     String cbcKey=null;
     String initVector=null;
     List<Message> messages;
@@ -47,15 +48,12 @@ public class Frame {
         } catch (JSONException e) {
             throw new RuntimeException(e);
         }
-        try {
-            json.put("cbcKey", encryptor.encrypt(cbcKey));
-        } catch (JSONException e) {
-            throw new RuntimeException(e);
-        }
-        try {
-            json.put("initVector", encryptor.encrypt(initVector));
-        } catch (JSONException e) {
-            throw new RuntimeException(e);
+        if(userId!=null){
+            try {
+                json.put("user_id", encryptor.encrypt(userId));
+            } catch (JSONException e) {
+                throw new RuntimeException(e);
+            }
         }
 
 

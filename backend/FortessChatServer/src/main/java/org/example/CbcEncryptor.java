@@ -3,9 +3,11 @@ package org.example;
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class CbcEncryptor implements Encryptor{
     private byte[] cbcKey;
@@ -20,8 +22,9 @@ public class CbcEncryptor implements Encryptor{
     @Override
     public HashMap<String, String> getParams() {
         var paramMap = new HashMap<String, String>();
-        paramMap.put("initVector",initVector.toString() );
-        paramMap.put("cbcKey",cbcKey.toString() );
+        paramMap.put("iv", new String(Base64.getEncoder().encode(initVector), StandardCharsets.UTF_8)  );
+        paramMap.put("key",new String(Base64.getEncoder().encode(cbcKey), StandardCharsets.UTF_8) );
+        paramMap.put("encryption_mode", "CBC" );
         return paramMap;
     }
     @Override

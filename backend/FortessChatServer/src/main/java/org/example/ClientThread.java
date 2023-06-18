@@ -279,6 +279,7 @@ class ClientThread implements Runnable {
             this.isAuthorized = true;
             this.user = user.get();
             Frame frame = new Frame(SERVER_LOGIN, "You are logged in");
+            frame.userId = this.user.getId();
             sendFrame(this.user,out, frame,encryptor);
         }
         else{

@@ -63,6 +63,7 @@ class AsymCipher:
             key_file.read(),
             password,
             )
+            self.public_key = self.private_key.public_key()
             return self.private_key
             
     def save_private_key(private_key, path_to_private_key, password):
