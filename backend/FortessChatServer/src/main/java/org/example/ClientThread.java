@@ -132,7 +132,9 @@ class ClientThread implements Runnable {
         int offset = 0;
         while (true) {
             try {
-                if (!((bytesRead = in.read(buffer,offset,buffer.length)) >= 0)) break;
+                if ((bytesRead = in.read(buffer, offset, 100000 - offset)) < 0) {
+                    break;
+                }
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -189,11 +191,9 @@ class ClientThread implements Runnable {
                                 byte[] initVector =new byte[]{};
                                 if(json.has("key")){
                                     cbcKey = pkpk.decrypt(json.getString("key").getBytes());
-                                    System.out.println(cbcKey);
                                 }
                                 if(json.has("iv")){
                                     initVector = pkpk.decrypt(json.getString("iv").getBytes());
-                                    System.out.println("iv: " + initVector);
                                 }
                                 encryptor = new CbcEncryptor(cbcKey, initVector);
                             }
@@ -216,7 +216,6 @@ class ClientThread implements Runnable {
                         }
                         if(json.has("login")) {
                             login = encryptor.decrypt(String.valueOf(json.getString("login")));
-                            System.out.println(login);
 
                         }
                         if(json.has("password")) {
@@ -228,7 +227,6 @@ class ClientThread implements Runnable {
                         }
                         if(json.has("client_public_key")){
                             clientPublicKey = encryptor.decrypt(String.valueOf(json.getString("client_public_key")));
-                            System.out.println(clientPublicKey);
                         }
                         if(json.has("code")) {
                             code = encryptor.decrypt(String.valueOf(json.getString("code")));
@@ -456,7 +454,6 @@ class ClientThread implements Runnable {
     private void joinChat(String chatId) {
 
         Optional<Chat> c = getChatById(chatId);
-        System.out.print(chatId);
         for(var chat : messageServer.chats){
             System.out.println("Other chats" + chat.getId());
         }
