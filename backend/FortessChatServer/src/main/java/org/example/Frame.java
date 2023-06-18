@@ -19,7 +19,8 @@ public class Frame {
     List<Message> messages;
     List<Chat> chats;
     PublicPrivateKeyImp pk;
-
+    byte[] chunk = new byte[]{};
+    String progress;
     public Frame(){
 
     }
@@ -55,7 +56,21 @@ public class Frame {
                 throw new RuntimeException(e);
             }
         }
-
+        if(chunk.length!=0){
+           try{
+               json.put("chunk", encryptor.encrypt(chunk));
+           }
+           catch (JSONException e) {
+               throw new RuntimeException(e);
+           }
+        }
+        if(progress!=null){
+            try {
+                json.put("progress", encryptor.encrypt(progress));
+            } catch (JSONException e) {
+                throw new RuntimeException(e);
+            }
+        }
 
         try {
             json.put("text", encryptor.encrypt(message));

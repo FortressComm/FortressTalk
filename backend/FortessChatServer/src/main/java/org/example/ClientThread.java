@@ -20,7 +20,7 @@ class ClientThread implements Runnable {
     }
     private PublicPrivateKeyImp pkpk;
     private boolean isAuthorized = false;
-    private User user = null;
+    public User user = null;
     static final String CREATE_CHAT = "CREATE_CHAT";
     static final String JOIN_CHAT = "JOIN_CHAT";
 
@@ -28,6 +28,11 @@ class ClientThread implements Runnable {
     static final String WRITE_TO_CHAT = "WRITE_TO_CHAT";
     static final String REGISTER = "REGISTER";
     static final String LOGIN = "LOGIN";
+
+    static final String START_SEND = "START_SEND";
+    static final String SEND = "SEND";
+    static final String END_SEND = "END_SEND";
+
     static final String GET_CHAT_MESSAGES = "GET_CHAT_MESSAGES";
 
 
@@ -49,17 +54,20 @@ class ClientThread implements Runnable {
 
     static final String SERVER_JOINED_CHAT = "SERVER_JOINED_CHAT";
 
+    static final String SERVER_FILE_PROGRESS = "SERVER_FILE_PROGRESS";
+    static final String SERVER_CHUNK_SEND = "SERVER_CHUNK_SEND";
 
+    static final String SERVER_CHUNK_END = "SERVER_CHUNK_END";
 
     MessageServer messageServer;
    
     
     private Socket clientSocket;
-    private Encryptor encryptor;
+    public Encryptor encryptor;
 
     public OutputStream out;
     public InputStream in;
-
+    public FileManager fileManager;
     public void run() {
 
         try {
@@ -98,14 +106,13 @@ class ClientThread implements Runnable {
                 String chatId = "";
                 String clientPublicKey = "";
                 String encryptionType = "";
+                String fileName = "";
+                long expectedSizeInBytes = 0;
+                byte[] chunk = new byte[]{};;
 
                 // JSON
                 try {
                     JSONObject json = new JSONObject(message);
-
-
-
-
 
 
                     if(json.has("encryption_mode")){
@@ -126,6 +133,16 @@ class ClientThread implements Runnable {
                         else{
                             
                         }
+                    }
+                    if(json.has("chunk")){
+                        chunk = encryptor.decrypt(json.getString("chunk").getBytes());
+                    }
+
+                    if(json.has("expected_size")){
+                        expectedSizeInBytes =  Long.valueOf(encryptor.decrypt(json.getString("file_name")));
+                    }
+                    if(json.has("file_name")){
+                        fileName = encryptor.decrypt(String.valueOf(json.getString("file_name")));
                     }
                     if(json.has("text")){
                         text = encryptor.decrypt(String.valueOf(json.getString("text")));
@@ -166,6 +183,16 @@ class ClientThread implements Runnable {
                         sendNoAuthMessage();
                     }
 
+                }
+                else if(code.equals(START_SEND)){
+                    fileManager = new FileManager(fileName, this, expectedSizeInBytes);
+                }
+                else if(code.equals(SEND)){
+                    fileManager.appendChunk(chunk);
+
+                }
+                else if(code.equals(END_SEND)){
+                    fileManager.close();
                 }
                 else if(code.equals(REGISTER)){
                     if(!isAuthorized) {
@@ -237,6 +264,11 @@ class ClientThread implements Runnable {
 
     }
 
+    public void sendFileProgress(long progress){
+        Frame frame = new Frame(SERVER_FILE_PROGRESS, "Your file progress");
+        frame.progress = Long.toString(progress);
+    }
+
     private List<Chat> getAllChatsByUser() {
         return messageServer.chats.stream().filter(chat -> chat.userIds.contains(user.getId())).toList();
     }
@@ -246,7 +278,7 @@ class ClientThread implements Runnable {
         sendFrame(this.user,out, frame,encryptor);
     }
 
-    private void sendFrame(User user,OutputStream out, Frame frame, Encryptor encryptor) {
+    public void sendFrame(User user,OutputStream out, Frame frame, Encryptor encryptor) {
 
         try {
             out.write(frame.toJsonString(user.publicKey, encryptor).getBytes(StandardCharsets.UTF_8));
