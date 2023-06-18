@@ -190,6 +190,7 @@ class ChatApp:
     def attach_file(self):
         file_path = filedialog.askopenfilename()
         if file_path:
+            self.client.file_transfer(file_path)
             chat_info = f"{self.current_user} ({self.chat_name_var.get()}) attached file: {file_path}"
             self.chat_area.configure(state="normal")  # Set text field as editable temporarily
             self.chat_area.insert(tk.END, chat_info + "\n")
@@ -274,6 +275,12 @@ class ChatApp:
         
         self.msgs.append(Msg(dict['text'], dict['other_user_id']))
         self.refresh_messages()
+
+    def transfer_progress(self, dict):
+        print(dict['progress'])
+
+    def print_error(self, title, content):
+        print(f"{title} {content}")
 
     def show_messagebox(self, title, content):
         messagebox.showinfo(title, content)

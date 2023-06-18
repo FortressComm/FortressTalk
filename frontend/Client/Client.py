@@ -3,6 +3,7 @@ import threading
 from Client.ClientEncryptor import ClientEncryptor
 import json
 from base64 import b64encode, b64decode
+import os
 
 class Client:
 
@@ -23,6 +24,19 @@ class Client:
     def send(self, data: bytes):
         self.client_socket.sendall(data)
             
+    def file_transfer(self, file_path):
+        file_size = os.path.getsize(file_path)
+        file_name = os.path.basename(file_path)
+        self.send_transfer_start(file_size, file_name)
+        with open(file_path, 'rb') as file:
+            chunk = file.read(1024)
+          
+            while chunk:
+                self.send_transfer_chunk(chunk)
+                chunk = file.read(1024)
+        
+        self.send_transfer_end()
+
     def dict_to_json_bytes(self, dict):
         for key in dict:
             dict[key] = b64encode(dict[key]).decode('utf-8')
@@ -91,6 +105,24 @@ class Client:
             'code': 'GET_CHATS',
         })
 
+    def send_transfer_start(self, expected_size, file_name):
+        self.send_json_bytes({
+            'code': 'START_SEND',
+            'expected_size': expected_size,
+            'file_name': file_name,
+        })
+
+    def send_transfer_chunk(self, chunk):
+        self.send_json_bytes({
+            'code': 'SEND',
+            'chunk': chunk,
+        })
+
+    def send_transfer_end(self):
+        self.send_json_bytes({
+            'code': 'END_SEND',
+        })
+
     def print_dict(dict):
         for key in dict:
             print(f'{key}: {dict[key]}')
@@ -126,8 +158,10 @@ class Client:
                     self.app.all_mgs_response(dict)
                 case 'SERVER_JOINED_CHAT':
                     self.app.joined_chat_response(dict)
+                case 'SERVER_FILE_PROGRESS':
+                    self.app.transfer_progress(dict)
                 case _:
-                    self.app.show_messagebox(dict['code'], dict['text'])  
+                    self.app.print_error(dict['code'], dict['text'])  
     
     def start_reciever(self):
         self.thread = threading.Thread(target=self.reciever_func)
