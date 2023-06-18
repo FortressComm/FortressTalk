@@ -4,6 +4,8 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -13,17 +15,20 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
+import java.util.HashMap;
 
 public final class PublicPrivateKeyImp implements Encryptor {
     private KeyPair pair;
 
-
+    @Override
+    public HashMap<String, String> getParams() {
+        return new HashMap<String, String>();
+    }
 
     private String privateKeyFileName = "private_key";
     private String publicKeyFileName = "public_key";
 
     private static volatile PublicPrivateKeyImp instance;
-
 
 
 
@@ -64,6 +69,64 @@ public final class PublicPrivateKeyImp implements Encryptor {
 
     public PublicKey getPublicKey() {
         return pair.getPublic();
+    }
+
+
+    public static String encrypt(String message,PublicKey publicKey){
+        Cipher encryptCipher = null;
+        try {
+            encryptCipher = Cipher.getInstance("RSA/None/OAEPWithSHA1AndMGF1Padding");
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        } catch (NoSuchPaddingException e) {
+            throw new RuntimeException(e);
+        }
+        try {
+            encryptCipher.init(Cipher.ENCRYPT_MODE, publicKey);
+
+            byte[] secretMessageBytes = message.getBytes(StandardCharsets.UTF_8);
+            byte[] encryptedMessageBytes = encryptCipher.doFinal(secretMessageBytes);
+
+            String encodedMessage = Base64.getEncoder().encodeToString(encryptedMessageBytes);
+            return encodedMessage;
+
+        } catch (InvalidKeyException e) {
+            throw new RuntimeException(e);
+        } catch (IllegalBlockSizeException e) {
+            throw new RuntimeException(e);
+        } catch (BadPaddingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    @Override
+    public byte[] decrypt(byte[] message) {
+        Cipher decryptCipher = null;
+        try {
+            decryptCipher = Cipher.getInstance("RSA/None/OAEPWithSHA256AndMGF1Padding");
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        } catch (NoSuchPaddingException e) {
+            throw new RuntimeException(e);
+        }
+        try {
+            decryptCipher.init(Cipher.DECRYPT_MODE, getPrivateKey());
+        } catch (InvalidKeyException e) {
+            throw new RuntimeException(e);
+        }
+        byte[] decryptedMessageBytes;
+        try {
+            //System.out.println("String length" + message.length());
+            byte messageBytes [] = Base64.getDecoder().decode(message);
+            System.out.println("Bytes length: " + messageBytes.length);
+            decryptedMessageBytes = decryptCipher.doFinal(messageBytes);
+
+        } catch (IllegalBlockSizeException e) {
+            throw new RuntimeException(e);
+        } catch (BadPaddingException e) {
+            throw new RuntimeException(e);
+        }
+        return decryptedMessageBytes;
+
     }
     @Override
     public String encrypt(String message){
@@ -137,6 +200,7 @@ public final class PublicPrivateKeyImp implements Encryptor {
 
 
     }
+
     private PrivateKey getPrivateKey(){
         return pair.getPrivate();
     }
@@ -163,6 +227,35 @@ public final class PublicPrivateKeyImp implements Encryptor {
             throw new RuntimeException(e);
         }
     }
+
+    @Override
+    public byte[] encrypt(byte[] message) {
+        Cipher encryptCipher = null;
+        try {
+            encryptCipher = Cipher.getInstance("RSA/None/OAEPWithSHA1AndMGF1Padding");
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        } catch (NoSuchPaddingException e) {
+            throw new RuntimeException(e);
+        }
+        try {
+            encryptCipher.init(Cipher.ENCRYPT_MODE, getPublicKey());
+
+            byte[] secretMessageBytes = message;
+            byte[] encryptedMessageBytes = encryptCipher.doFinal(secretMessageBytes);
+
+
+            return Base64.getEncoder().encode(encryptedMessageBytes);
+
+        } catch (InvalidKeyException e) {
+            throw new RuntimeException(e);
+        } catch (IllegalBlockSizeException e) {
+            throw new RuntimeException(e);
+        } catch (BadPaddingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private void savePair(){
         savePrivateKey(pair.getPrivate());
         savePublicKey(pair.getPublic());

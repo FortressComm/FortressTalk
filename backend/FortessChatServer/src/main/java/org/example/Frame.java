@@ -4,7 +4,11 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.security.PublicKey;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 public class Frame {
     String code;
@@ -13,7 +17,7 @@ public class Frame {
     String initVector=null;
     List<Message> messages;
     List<Chat> chats;
-
+    PublicPrivateKeyImp pk;
 
     public Frame(){
 
@@ -22,8 +26,21 @@ public class Frame {
         this.code = code;
         this.message = message;
     }
-    public String toJsonString(Encryptor encryptor){
+    public String toJsonString(String userPublicKey, Encryptor encryptor){
+        PublicKey publicKey = PublicPrivateKeyImp.getPublicKeyFromString(userPublicKey);
+
+
         JSONObject json = new JSONObject();
+        HashMap<String,String> params = encryptor.getParams();
+        for(String paramName : params.keySet()){
+            try {
+                String paramValue = params.get(paramName);
+                String encryptedValue = PublicPrivateKeyImp.encrypt(paramValue,publicKey);
+                json.put(paramName, encryptedValue);
+            } catch (JSONException e) {
+                throw new RuntimeException(e);
+            }
+        }
 
         try {
             json.put("code", encryptor.encrypt(code));
