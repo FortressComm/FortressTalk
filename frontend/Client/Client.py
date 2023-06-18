@@ -108,10 +108,8 @@ class Client:
             print('response decrypted:')
             Client.print_dict(dict)
             match dict['code']:
-                # case 'SERVER_NEW_MESSAGE':
-                #     text = data['text']
-                #     text = b64decode(text)
-                #     # print(self.other_client_encryptor.get_recieved_msg(text))    
+                case 'SERVER_NEW_MESSAGE':
+                    self.app.new_msg_response(dict)    
                 case 'SERVER_REGISTRATION':
                     self.app.register_success(dict)
                 case 'SERVER_LOGIN':
@@ -121,7 +119,7 @@ class Client:
                 case 'SERVER_CHATS':
                     self.app.chats_response(dict)
                 case 'SERVER_CHAT_ID':
-                    self.app.create_chat_resoponse(dict)
+                    self.app.create_chat_response(dict)
                 case 'SERVER_MSG_CHAT':
                     self.app.send_msg_response(dict)
                 case 'SERVER_MSG_ALL':
@@ -129,7 +127,7 @@ class Client:
                 case 'SERVER_JOINED_CHAT':
                     self.app.joined_chat_response(dict)
                 case _:
-                    self.app.show_messagebox("Error", dict['code'])  
+                    self.app.show_messagebox(dict['code'], dict['text'])  
     
     def start_reciever(self):
         self.thread = threading.Thread(target=self.reciever_func)

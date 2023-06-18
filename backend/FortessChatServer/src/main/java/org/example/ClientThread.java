@@ -320,6 +320,8 @@ class ClientThread implements Runnable {
         for(ClientThread socket : clientSockets){
             if(clientSocket != socket.clientSocket && chat.get().userIds.contains(socket.user.getId())){
                 Frame frame = new Frame(SERVER_NEW_MESSAGE, text);
+                frame.otherUserId = this.user.getId();
+                frame.chatId = chatId;
                 sendFrame(socket.user, socket.out, frame, encryptor);
             }
             else{

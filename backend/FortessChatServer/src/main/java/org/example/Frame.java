@@ -14,8 +14,10 @@ public class Frame {
     String code;
     String message;
     String userId;
+    String chatId;
     String cbcKey=null;
     String initVector=null;
+    String otherUserId;
     List<Message> messages;
     List<Chat> chats;
     PublicPrivateKeyImp pk;
@@ -55,12 +57,26 @@ public class Frame {
                 throw new RuntimeException(e);
             }
         }
-
+        if(chatId!=null){
+            try {
+                json.put("chat_id", encryptor.encrypt(chatId));
+            } catch (JSONException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        if(otherUserId!=null){
+            try {
+                json.put("other_user_id", encryptor.encrypt(otherUserId));
+            } catch (JSONException e) {
+                throw new RuntimeException(e);
+            }
+        }
 
         try {
             json.put("text", encryptor.encrypt(message));
         } catch (JSONException e) {
             throw new RuntimeException(e);
+
         }
         try {
             if(messages != null){
