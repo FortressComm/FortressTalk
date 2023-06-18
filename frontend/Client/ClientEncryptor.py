@@ -32,6 +32,11 @@ class ClientEncryptor:
 
         return dict
 
+    def decrpyt_cipher_fields(self, dict):
+        dict['key'] = self.asym_encrypt(self.sym_cipher.key)
+        dict['iv'] = self.asym_encrypt(self.sym_cipher.iv)
+        dict['encryption_mode'] = self.asym_encrypt(bytes('CBC', 'utf-8'))
+
     def sym_decrypt(self, bytes):
         # frame = Frame.from_bytes(bytes)
 
@@ -57,3 +62,6 @@ class ClientEncryptor:
         
 
         return dict
+    
+    def decrypt_dict(self, dict):
+        pass
