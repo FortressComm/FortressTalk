@@ -69,6 +69,9 @@ class ChatApp:
         self.chat_name_dropdown = tk.OptionMenu(self.chat_frame, self.chat_name_var, None,*self.chats, command=self.on_chat_select)
         self.chat_name_dropdown.grid(row=0, column=1, padx=10, pady=10)
 
+        tk.Button(self.chat_frame, text="Copy chat_id", command=self.copy_chat_to_clipboard).grid(row=0, column=1, padx=0, pady=10, sticky="W")
+        
+
         self.chat_area = tk.Text(self.chat_frame, width=40, height=16)
         self.chat_area.configure(state="disabled")  # Set text field as read-only
         self.chat_area.grid(row=1, column=0, columnspan=2, padx=10, pady=10)
@@ -81,17 +84,13 @@ class ChatApp:
         self.entry = tk.Entry(self.chat_frame)
         self.entry.grid(row=2, column=0, padx=10, pady=10, sticky="EW")
 
-        self.send_button = tk.Button(self.chat_frame, text="Send", command=self.send_message)
-        self.send_button.grid(row=2, column=1, padx=10, pady=10, sticky="W")
+        tk.Button(self.chat_frame, text="Send", command=self.send_message).grid(row=2, column=1, padx=10, pady=10, sticky="W")
 
-        self.send_button = tk.Button(self.chat_frame, text="Create chat", command=self.create_chat)
-        self.send_button.grid(row=2, column=1, padx=150, pady=10, sticky="W")
+        tk.Button(self.chat_frame, text="Create chat", command=self.create_chat).grid(row=2, column=1, padx=150, pady=10, sticky="W")
 
-        self.attach_button = tk.Button(self.chat_frame, text="Attach File", command=self.attach_file)
-        self.attach_button.grid(row=2, column=1, padx=80, pady=10, sticky="W")
+        tk.Button(self.chat_frame, text="Attach File", command=self.attach_file).grid(row=2, column=1, padx=80, pady=10, sticky="W")
 
-        self.attach_button = tk.Button(self.chat_frame, text="Join Chat", command=self.join_chat)
-        self.attach_button.grid(row=2, column=1, padx=220, pady=10, sticky="W")
+        tk.Button(self.chat_frame, text="Join Chat", command=self.join_chat).grid(row=2, column=1, padx=220, pady=10, sticky="W")
 
         # Create login page
         self.login_frame = tk.Frame(self.root, width=400, height=400)
@@ -131,8 +130,12 @@ class ChatApp:
 
         self.show_login_page()
 
+    def copy_chat_to_clipboard(self):
+        self.root.clipboard_clear()
+        self.root.clipboard_append(self.chat_name_var.get())
+
     def on_chat_select(self, value):
-        print(value)
+        self.load_messages()
 
     def show_login_page(self):
         self.register_frame.pack_forget()
@@ -240,7 +243,7 @@ class ChatApp:
         self.update_options()
         self.load_messages()
 
-    def joined_chat_response(self):
+    def joined_chat_response(self, dict):
         self.client.send_get_chats()
 
     def chats_response(self, data):
@@ -256,13 +259,20 @@ class ChatApp:
         self.client.send_join_chat(self.entry.get())
 
     def send_msg_response(self, data):
-        self.show_messagebox(data['code'], data['text'])
         pass
     
     def all_mgs_response(self, dict):
         msgs = dict['messages']
+        self.msgs = []
         for msg in msgs:
             self.msgs.append(Msg(msg['text'], msg['user_id_from']))
+        self.refresh_messages()
+
+    def new_msg_response(self, dict):
+        if dict['chat_id'] != self.chat_name_var.get():
+            return
+        
+        self.msgs.append(Msg(dict['text'], dict['other_user_id']))
         self.refresh_messages()
 
     def show_messagebox(self, title, content):
