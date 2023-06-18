@@ -1,5 +1,7 @@
 package org.example;
 
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
@@ -30,7 +32,7 @@ public final class PublicPrivateKeyImp implements Encryptor {
 
     private static volatile PublicPrivateKeyImp instance;
 
-
+    private static final String conf = "RSA/None/OAEPWithSHA256AndMGF1Padding";
 
 
     public static PublicPrivateKeyImp getInstance() {
@@ -47,15 +49,28 @@ public final class PublicPrivateKeyImp implements Encryptor {
     }
 
     public static PublicKey getPublicKeyFromString(String key){
+        Security.addProvider(new BouncyCastleProvider());
         try{
-            byte[] byteKey = Base64.getEncoder().encode(key.getBytes());
+            String publicKeyPEM = key
+                    .replace("-----BEGIN PUBLIC KEY-----", "")
+                    .replaceAll(System.lineSeparator(), "")
+                    .replace("-----END PUBLIC KEY-----", "")
+                    .replace("\n","");
+            byte[] byteKey =  Base64.getDecoder().decode(publicKeyPEM.getBytes(StandardCharsets.UTF_8));
+
             X509EncodedKeySpec X509publicKey = new X509EncodedKeySpec(byteKey);
             KeyFactory kf = KeyFactory.getInstance("RSA");
 
             return kf.generatePublic(X509publicKey);
         }
-        catch(Exception e){
-            e.printStackTrace();
+        catch (IllegalArgumentException e) {
+            System.err.println("Invalid key: " + e.getMessage());
+        } catch (NoSuchAlgorithmException e) {
+            System.err.println("RSA algorithm not supported: " + e.getMessage());
+        } catch (InvalidKeySpecException e) {
+            System.err.println("Invalid key specification: " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("Unexpected error occurred: " + e.getMessage());
         }
 
         return null;
@@ -75,7 +90,7 @@ public final class PublicPrivateKeyImp implements Encryptor {
     public static String encrypt(String message,PublicKey publicKey){
         Cipher encryptCipher = null;
         try {
-            encryptCipher = Cipher.getInstance("RSA/None/OAEPWithSHA1AndMGF1Padding");
+            encryptCipher = Cipher.getInstance(conf);
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         } catch (NoSuchPaddingException e) {
@@ -102,7 +117,7 @@ public final class PublicPrivateKeyImp implements Encryptor {
     public byte[] decrypt(byte[] message) {
         Cipher decryptCipher = null;
         try {
-            decryptCipher = Cipher.getInstance("RSA/None/OAEPWithSHA256AndMGF1Padding");
+            decryptCipher = Cipher.getInstance(conf);
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         } catch (NoSuchPaddingException e) {
@@ -132,7 +147,7 @@ public final class PublicPrivateKeyImp implements Encryptor {
     public String encrypt(String message){
         Cipher encryptCipher = null;
         try {
-            encryptCipher = Cipher.getInstance("RSA/None/OAEPWithSHA1AndMGF1Padding");
+            encryptCipher = Cipher.getInstance(conf);
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         } catch (NoSuchPaddingException e) {
@@ -160,7 +175,7 @@ public final class PublicPrivateKeyImp implements Encryptor {
     public String decrypt(String message) {
         Cipher decryptCipher = null;
         try {
-            decryptCipher = Cipher.getInstance("RSA/None/OAEPWithSHA256AndMGF1Padding");
+            decryptCipher = Cipher.getInstance(conf);
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         } catch (NoSuchPaddingException e) {
@@ -232,7 +247,7 @@ public final class PublicPrivateKeyImp implements Encryptor {
     public byte[] encrypt(byte[] message) {
         Cipher encryptCipher = null;
         try {
-            encryptCipher = Cipher.getInstance("RSA/None/OAEPWithSHA1AndMGF1Padding");
+            encryptCipher = Cipher.getInstance(conf);
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         } catch (NoSuchPaddingException e) {

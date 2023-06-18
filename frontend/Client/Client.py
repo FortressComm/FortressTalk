@@ -33,11 +33,13 @@ class Client:
         self.send(self.dict_to_json_bytes(self.server_encryptor.encrypt_dict(dict)))
 
     def send_register(self, login, password):
+        pk = self.client_encryptor.asym_cipher.public_key_to_string()
+        print(pk)
         self.send_json_bytes({
             'code': 'REGISTER',
             'login': login,
             'password': password,
-            'client_public_key': 'self.client_encryptor.asym_cipher.public_key_to_string()',
+            'client_public_key': pk,
         })
 
     def send_login(self, login, password):
