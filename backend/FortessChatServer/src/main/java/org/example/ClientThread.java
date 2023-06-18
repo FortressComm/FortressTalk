@@ -173,16 +173,16 @@ class ClientThread implements Runnable {
                         saveUsers();
                     }
                     else{
-                        sendFrame(out, new Frame(SERVER_AUTH_CODE, "You are already authorized"),encryptor);
+                        sendFrame(this.user,out, new Frame(SERVER_AUTH_CODE, "You are already authorized"),encryptor);
                     }
 
                 }
                 else if(code.equals(LOGIN)){
                     if(!isAuthorized){
-                        login(login, password);
+                        login(login, password, clientPublicKey);
                     }
                     else{
-                        sendFrame(out, new Frame(SERVER_AUTH_CODE, "You are already authorized"),encryptor);
+                        sendFrame(this.user,out, new Frame(SERVER_AUTH_CODE, "You are already authorized"),encryptor);
                     }
 
                 }
@@ -211,7 +211,7 @@ class ClientThread implements Runnable {
 
                         Frame frame = new Frame(SERVER_MSG_ALL, "");
                         frame.messages = messages;
-                        sendFrame(out, frame,encryptor);
+                        sendFrame(this.user,out, frame,encryptor);
                     }
                     else{
                         sendNoAuthMessage();
@@ -222,7 +222,7 @@ class ClientThread implements Runnable {
                         List<Chat> chats = getAllChatsByUser();
                         Frame frame = new Frame(SERVER_CHATS, "");
                         frame.chats = chats;
-                        sendFrame(out, frame,encryptor);
+                        sendFrame(this.user,out, frame,encryptor);
                     }
                     else{
                         sendNoAuthMessage();
@@ -243,10 +243,10 @@ class ClientThread implements Runnable {
 
     private void sendNoAuthMessage(){
         Frame frame = new Frame(SERVER_AUTH_CODE, "You are not authorized");
-        sendFrame(out, frame,encryptor);
+        sendFrame(this.user,out, frame,encryptor);
     }
 
-    private void sendFrame(OutputStream out, Frame frame, Encryptor encryptor) {
+    private void sendFrame(User user,OutputStream out, Frame frame, Encryptor encryptor) {
 
         try {
             out.write(frame.toJsonString(encryptor).getBytes(StandardCharsets.UTF_8));
@@ -269,21 +269,21 @@ class ClientThread implements Runnable {
         this.isAuthorized = true;
         messageServer.users.add(user);
         Frame frame = new Frame(SERVER_REGISTRATION, "thank you for registration");
-        sendFrame(out, frame,encryptor);
+        sendFrame(this.user, out, frame,encryptor);
 
     }
-    private void login(String login, String password){
+    private void login(String login, String password, String publicKey){
         Optional<User> user = messageServer.users.stream().filter(u-> u.login.equals(login)
                 && u.password.equals(password)).findFirst();
         if(user.isPresent()){
             this.isAuthorized = true;
             this.user = user.get();
             Frame frame = new Frame(SERVER_LOGIN, "You are logged in");
-            sendFrame(out, frame,encryptor);
+            sendFrame(this.user,out, frame,encryptor);
         }
         else{
             Frame frame = new Frame(SERVER_LOGIN_FAILED, "NO SUCH USER");
-            sendFrame(out, frame,encryptor);
+            sendFrame(new User("","", publicKey), out, frame,encryptor);
         }
     }
 
@@ -309,7 +309,7 @@ class ClientThread implements Runnable {
         List<ClientThread> clientSockets = messageServer.clients;
         if(!chat.get().userIds.contains(user.getId())){
             Frame frame = new Frame(SERVER_SECURITY, "YOU ARE NOT ALLOWED TO WRITE IN THIS CHAT");
-            sendFrame(out, frame,encryptor);
+            sendFrame(this.user, out, frame,encryptor);
             return;
         }
         Message m = new Message(user.getId(), chatId, text, textBytes);
@@ -319,11 +319,11 @@ class ClientThread implements Runnable {
         for(ClientThread socket : clientSockets){
             if(clientSocket != socket.clientSocket && chat.get().userIds.contains(socket.user.getId())){
                 Frame frame = new Frame(SERVER_NEW_MESSAGE, text);
-                sendFrame(socket.out, frame, encryptor);
+                sendFrame(socket.user, socket.out, frame, encryptor);
             }
             else{
                 Frame frame = new Frame(SERVER_MSG_CHAT, "Message Was sent");
-                sendFrame(socket.out, frame, encryptor);
+                sendFrame(user, socket.out, frame, encryptor);
             }
         }
     }
@@ -332,13 +332,13 @@ class ClientThread implements Runnable {
         Optional<Chat> chat = getChatById(chatId);
         if(chat.isEmpty()){
             Frame frame = new Frame(SERVER_UNKNOWN,"NO SUCH CHAT");
-            sendFrame(out, frame,encryptor);
+            sendFrame(user, out, frame,encryptor);
             return new ArrayList<>();
         }
         List<ClientThread> clientSockets = messageServer.clients;
         if(!chat.get().userIds.contains(user.getId())){
             Frame frame = new Frame(SERVER_SECURITY,"YOU ARE NOT ALLOWED TO WRITE IN THIS CHAT" );
-            sendFrame(out,frame, encryptor);
+            sendFrame(user,out,frame, encryptor);
             return new ArrayList<>();
         }
         return  messageServer.messages.stream().filter(message -> message.getChatId().equals(chatId)).toList();
@@ -361,11 +361,11 @@ class ClientThread implements Runnable {
             c.get().userIds.add(this.user.getId());
 
             Frame frame = new Frame(SERVER_JOINED_CHAT, "You are added to a chat");
-            sendFrame(out, frame,encryptor);
+            sendFrame(this.user, out, frame,encryptor);
         }
         else{
             Frame frame = new Frame(SERVER_UNKNOWN, "NO SUCH CHAT");
-            sendFrame(out, frame,encryptor);
+            sendFrame(this.user, out, frame,encryptor);
         }
     }
     private void saveChats(){
@@ -421,7 +421,7 @@ class ClientThread implements Runnable {
         chat.userIds.add(this.user.getId());
         messageServer.chats.add(chat);
         Frame frame = new Frame(SERVER_CHAT_ID,chat.getId() );
-        sendFrame(out, frame,encryptor);
+        sendFrame(this.user, out, frame,encryptor);
 
         joinChat(chat.getId());
     }
