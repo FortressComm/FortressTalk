@@ -77,9 +77,6 @@ class ClientThread implements Runnable {
         int nestingLevel = 0;
 
         for (int i = 0; i < bytes.length; i++) {
-            if (nestingLevel < 0){
-                throw new RuntimeException("minus");
-            }
             if (bytes[i] == '{') {
                 nestingLevel++;
 

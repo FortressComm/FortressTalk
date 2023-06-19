@@ -1,8 +1,8 @@
 import tkinter as tk
 from tkinter import messagebox, filedialog
-from Client.ClientEncryptor import ClientEncryptor
+from ClientFiles.ClientEncryptor import ClientEncryptor
 from Encryption.Asymmetric import AsymCipher
-from Client.Client import Client
+from ClientFiles.Client import Client
 import time
 
 
