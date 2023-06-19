@@ -174,8 +174,9 @@ class ClientThread implements Runnable {
                     String clientPublicKey = "";
                     String encryptionType = "";
                     String fileName = "";
+                    int chunkNumber = 0;
                     long expectedSizeInBytes = 0;
-                    byte[] chunk = new byte[]{};;
+                    byte[] chunkBytes = new byte[]{};;
 
                     // JSON
                     try {
@@ -202,7 +203,7 @@ class ClientThread implements Runnable {
                             }
                         }
                         if(json.has("chunk")){
-                            chunk = encryptor.decrypt(json.getString("chunk").getBytes());
+                            chunkBytes = encryptor.decrypt(json.getString("chunk").getBytes());
                         }
 
                         if(json.has("expected_size")){
@@ -210,6 +211,9 @@ class ClientThread implements Runnable {
                         }
                         if(json.has("file_name")){
                             fileName = encryptor.decrypt(String.valueOf(json.getString("file_name")));
+                        }
+                        if(json.has("chunk_number")){
+                            chunkNumber = Integer.valueOf(encryptor.decrypt(json.getString("chunk_number")));
                         }
                         if(json.has("text")){
                             text = encryptor.decrypt(String.valueOf(json.getString("text")));
@@ -255,6 +259,7 @@ class ClientThread implements Runnable {
                         fileManager = new FileManager(fileName, this, expectedSizeInBytes);
                     }
                     else if(code.equals(SEND)){
+                        Chunk chunk= new Chunk(chatId, chunkNumber,fileName,chunkBytes);
                         fileManager.appendChunk(chunk);
 
                     }

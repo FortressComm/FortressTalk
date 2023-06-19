@@ -1,10 +1,12 @@
 package org.example;
 
 import java.io.*;
+import java.util.*;
 
 import static org.example.ClientThread.*;
 
 public class FileManager{
+    List<Chunk> chunkList;
     String filename;
     long expectedSizeInBytes;
     ClientThread cT;
@@ -12,8 +14,17 @@ public class FileManager{
         this.filename = filename;
         this.expectedSizeInBytes = expectedSizeInBytes;
         this.cT = clientThread;
+        chunkList = new ArrayList<>();
     }
-    public void appendChunk(byte[] data) {
+    public void appendChunk(Chunk chunk) {
+        chunkList.add(chunk);
+        var actualSize=0;
+        for(var c : chunkList){
+            actualSize+=c.bytes.length;
+        }
+        cT.sendFileProgress((actualSize*100)/expectedSizeInBytes);
+    }
+    public void appendChunkToFile(byte[] data){
         FileOutputStream output = null;
         try {
 
@@ -24,12 +35,6 @@ public class FileManager{
         }
         try {
             output.write(data);
-
-
-            File file = new File(filename);
-            long actualSize = file.length();
-            cT.sendFileProgress((actualSize*100)/expectedSizeInBytes);
-
 
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -42,7 +47,11 @@ public class FileManager{
         }
     }
     public void close(){
-
+        Collections.sort(chunkList, Comparator.comparingInt(c -> c.number));
+        byte fileBytes[] = new byte[]{};
+        for ( var c :chunkList){
+            appendChunkToFile(c.bytes);
+        }
     }
     public void sendChunks(){
         FileInputStream is = null;
