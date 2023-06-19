@@ -64,7 +64,10 @@ class ClientEncryptor:
                 for el in lst:
                     el = self.decrypt_dict_without_cipher_attr(sym_cipher, el)
             else:
-                dict[key] = sym_cipher.decrypt(dict[key]).decode('utf-8')
+                if key == 'chunk':
+                    dict[key] = sym_cipher.decrypt(dict[key])
+                else:
+                    dict[key] = sym_cipher.decrypt(dict[key]).decode('utf-8')
 
         return dict
 

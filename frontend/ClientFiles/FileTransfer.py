@@ -1,6 +1,6 @@
 class FileSaveSession:
 
-    FILES_CATALOG = './'
+    FILES_CATALOG = './Downloads/'
 
     def __init__(self, file_name):
         self.file_name = file_name
@@ -10,7 +10,7 @@ class FileSaveSession:
         self.chunks.append(chunk)
 
     def save_bytes_to_file(self):
-        sorted_chunks = sorted(self.chunks, key=lambda x: x[0])
+        sorted_chunks = sorted(self.chunks, key=lambda x: int(x[0]))
         buffer = b"".join(item[1] for item in sorted_chunks)
 
         with open(FileSaveSession.FILES_CATALOG + self.file_name, 'wb') as file:

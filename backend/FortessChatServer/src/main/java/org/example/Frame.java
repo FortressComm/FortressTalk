@@ -5,10 +5,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.security.PublicKey;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class Frame {
     String code;
@@ -19,6 +16,7 @@ public class Frame {
     String initVector=null;
     String otherUserId;
     String fileName;
+    String chunkNumber;
     List<Message> messages;
     List<Chat> chats;
     PublicPrivateKeyImp pk;
@@ -73,6 +71,13 @@ public class Frame {
                 throw new RuntimeException(e);
             }
         }
+        if(chunkNumber!=null){
+            try {
+                json.put("chunk_number", encryptor.encrypt(chunkNumber));
+            } catch (JSONException e) {
+                throw new RuntimeException(e);
+            }
+        }
         if(otherUserId!=null){
             try {
                 json.put("other_user_id", encryptor.encrypt(otherUserId));
@@ -82,7 +87,7 @@ public class Frame {
         }
         if(chunk.length!=0){
             try{
-                json.put("chunk", encryptor.encrypt(chunk));
+                json.put("chunk",  new String(Base64.getEncoder().encode(encryptor.encrypt(chunk))));
             }
             catch (JSONException e) {
                 throw new RuntimeException(e);

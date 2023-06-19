@@ -264,7 +264,7 @@ class ClientThread implements Runnable {
                         if(isAuthorized) {
                             fileTransferSession = new FileTransferSession(fileName, this, expectedSizeInBytes, chatId);
                         }
-                        {
+                        else {
                             sendNoAuthMessage();
                         }
                     }
@@ -368,6 +368,7 @@ class ClientThread implements Runnable {
     public void sendFileProgress(long progress){
         Frame frame = new Frame(SERVER_FILE_PROGRESS, "Your file progress");
         frame.progress = Long.toString(progress);
+        sendFrame(this.user,out, frame,encryptor);
     }
 
     private List<Chat> getAllChatsByUser() {
@@ -459,6 +460,9 @@ class ClientThread implements Runnable {
             }
             else{
                 Frame frame = new Frame(SERVER_MSG_CHAT, "Message Was sent");
+                frame.message = text;
+                frame.chatId = chatId;
+                frame.userId = this.user.getId();
                 sendFrame(user, socket.out, frame, encryptor);
             }
         }

@@ -7,6 +7,7 @@ from base64 import b64encode, b64decode
 import os
 import uuid
 
+
 class Client:
 
     def __init__(self, host, port, app):
@@ -27,8 +28,6 @@ class Client:
     def send(self, data: bytes):
         self.client_socket.sendall(data)
 
-
-
     def file_transfer(self, file_path, chat_id):
         chunk_size = 10240
         file_size = str(os.path.getsize(file_path))
@@ -44,12 +43,13 @@ class Client:
                 chunk = file.read(chunk_size)
 
         self.send_transfer_end(chat_id)
+        self.send_msg('file:' + file_name, chat_id)
 
     def dict_to_json_bytes(self, dict):
         for key in dict:
             dict[key] = b64encode(dict[key]).decode('utf-8')
 
-        return bytes(json.dumps(dict, indent = 4), 'utf-8')
+        return bytes(json.dumps(dict, indent=4), 'utf-8')
 
     def decode_dict(self, dict):
 
@@ -83,6 +83,7 @@ class Client:
             'password': password,
             'client_public_key': self.client_encryptor.my_asym_cipher.public_key_to_string(),
         })
+        print('send_login')
 
     def send_msg(self, msg, chat_id):
         self.send_json_bytes({
@@ -135,10 +136,15 @@ class Client:
             'chat_id': chat_id,
         })
 
-    def print_dict(dict_to_print):
+    def send_get_file(self, file_name):
+        self.send_json_bytes({
+            'code': 'GET_FILE',
+            'file_name': file_name,
+        })
+
+    def print_dict(self, dict_to_print):
         for key in dict_to_print:
             print(f'{key}: {dict_to_print[key]}')
-
 
     def notify(self, json_dict):
         match json_dict['code']:
@@ -166,7 +172,7 @@ class Client:
                 self.start_file_download(json_dict['file_name'])
             case 'SERVER_CHUNK_SEND':
                 self.add_file_chunk(json_dict['chunk_number'], json_dict['chunk'])
-            case 'SERVER_SEND_END':
+            case 'SERVER_END_SEND':
                 self.stop_file_download()
             case _:
                 self.app.print_error(json_dict['code'], json_dict['text'])
@@ -186,9 +192,9 @@ class Client:
         nesting_level = 0
 
         for i in range(len(bytes_to_parse)):
-            if bytes_to_parse[i] ==b'{':
+            if bytes_to_parse[i] == ord('{'):
                 nesting_level += 1
-            elif bytes_to_parse[i] == b'}':
+            elif bytes_to_parse[i] == ord('}'):
                 nesting_level -= 1
                 if nesting_level == 0:
                     end = i + 1
@@ -198,7 +204,7 @@ class Client:
 
         return json_bytes_list
 
-    def calculate_total_bytes(self,  byte_array):
+    def calculate_total_bytes(self, byte_array):
         total_bytes = 0
         for byte in byte_array:
             total_bytes += len(byte)
@@ -225,14 +231,14 @@ class Client:
                 json_dict = self.decode_dict(json_dict)
                 json_dict = self.client_encryptor.decrypt_dict(json_dict)
                 print('response:')
-                Client.print_dict(json_dict)
+                self.print_dict(json_dict)
                 self.notify(json_dict)
 
     def start_reciever(self):
         self.thread = threading.Thread(target=self.receiver_func)
         self.thread.start()
 
-    def stop_reciever (self):
+    def stop_reciever(self):
         self.disconnect()
         self.thread.join()
 

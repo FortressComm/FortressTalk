@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import messagebox, filedialog
+from tkinter import messagebox, filedialog, ttk
 from ClientFiles.ClientEncryptor import ClientEncryptor
 from Encryption.Asymmetric import AsymCipher
 from ClientFiles.Client import Client
@@ -44,7 +44,7 @@ class ChatApp:
         self.current_user = None
 
         # Set window size
-        self.root.geometry("400x400")
+        self.root.geometry("800x800")
 
         # Create top menu
         self.menu_bar = tk.Menu(self.root)
@@ -96,6 +96,14 @@ class ChatApp:
 
         tk.Button(self.chat_frame, text="Join Chat", command=self.join_chat).grid(row=2, column=1, padx=220, pady=10,
                                                                                   sticky="W")
+
+        tk.Button(self.chat_frame, text="Get file", command=self.get_file).grid(row=2, column=1, padx=280, pady=10,
+                                                                                  sticky="W")
+
+        # Create the progress bar
+        self.progress_bar = ttk.Progressbar(self.chat_frame, mode='determinate')
+        self.progress_bar.grid(row=2, column=1, padx=350, pady=10, sticky="W")
+        # progress_bar.pack()
 
         # Create login page
         self.login_frame = tk.Frame(self.root, width=400, height=400)
@@ -186,18 +194,16 @@ class ChatApp:
     def send_message(self):
         message = self.entry.get()
         if message:
-            self.msgs.append(Msg(message, self.my_id))
             self.client.send_msg(message, self.chat_name_var.get())
-            self.refresh_messages()
 
     def attach_file(self):
         file_path = filedialog.askopenfilename()
         if file_path:
             self.client.file_transfer(file_path, self.chat_name_var.get())
-            chat_info = f"{self.current_user} ({self.chat_name_var.get()}) attached file: {file_path}"
-            self.chat_area.configure(state="normal")  # Set text field as editable temporarily
-            self.chat_area.insert(tk.END, chat_info + "\n")
-            self.chat_area.configure(state="disabled")  # Set text field as read-only again
+            # chat_info = f"{self.current_user} ({self.chat_name_var.get()}) attached file: {file_path}"
+            # self.chat_area.configure(state="normal")  # Set text field as editable temporarily
+            # self.chat_area.insert(tk.END, chat_info + "\n")
+            # self.chat_area.configure(state="disabled")  # Set text field as read-only again
 
     def receive_message(self, message):
         self.chat_area.configure(state="normal")  # Set text field as editable temporarily
@@ -263,14 +269,14 @@ class ChatApp:
     def join_chat(self):
         self.client.send_join_chat(self.entry.get())
 
-    def send_msg_response(self, data):
-        pass
+    def get_file(self):
+        self.client.send_get_file(self.entry.get())
 
-    def all_mgs_response(self, dict):
-        msgs = dict['messages']
-        self.msgs = []
-        for msg in msgs:
-            self.msgs.append(Msg(msg['text'], msg['user_id_from']))
+    def send_msg_response(self, dict):
+        if dict['chat_id'] != self.chat_name_var.get():
+            return
+
+        self.msgs.append(Msg(dict['text'],  dict['user_id']))
         self.refresh_messages()
 
     def new_msg_response(self, dict):
@@ -280,8 +286,15 @@ class ChatApp:
         self.msgs.append(Msg(dict['text'], dict['other_user_id']))
         self.refresh_messages()
 
+    def all_mgs_response(self, dict):
+        msgs = dict['messages']
+        self.msgs = []
+        for msg in msgs:
+            self.msgs.append(Msg(msg['text'], msg['user_id_from']))
+        self.refresh_messages()
+
     def transfer_progress(self, dict):
-        print(dict['progress'])
+        self.progress_bar['value'] = int(dict['progress'])
 
     def print_error(self, title, content):
         print(f"{title} {content}")

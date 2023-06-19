@@ -53,7 +53,7 @@ public class CbcEncryptor implements Encryptor{
             cipher.init(Cipher.ENCRYPT_MODE, skeySpec, iv);
 
             byte[] encrypted = cipher.doFinal(message);
-            return Base64.getEncoder().encode(encrypted);
+            return encrypted;
         } catch (Exception ex) {
             ex.printStackTrace();
         }
