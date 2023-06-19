@@ -77,8 +77,12 @@ class ClientThread implements Runnable {
         int nestingLevel = 0;
 
         for (int i = 0; i < bytes.length; i++) {
+            if (nestingLevel < 0){
+                throw new RuntimeException("minus");
+            }
             if (bytes[i] == '{') {
                 nestingLevel++;
+
             } else if (bytes[i] == '}') {
                 nestingLevel--;
                 if (nestingLevel == 0) {
@@ -139,8 +143,8 @@ class ClientThread implements Runnable {
                 throw new RuntimeException(e);
             }
             if (bytesRead > 0) {
-                var bufferReadBytes = Arrays.copyOfRange(buffer, 0, bytesRead);
-
+                var bufferReadBytes = Arrays.copyOfRange(buffer, 0, bytesRead + offset);
+                String bufferReadBytesStr = new String(bufferReadBytes, StandardCharsets.UTF_8);
 
                 List<byte[]> splitedBytes =splitBytes(bufferReadBytes);
                 int normalBytesLen = getTotalBytesLength(splitedBytes);
@@ -148,6 +152,7 @@ class ClientThread implements Runnable {
                 if(normalBytesLen != bufferReadBytes.length){
 
                     byte brokenJson[] = Arrays.copyOfRange(bufferReadBytes, normalBytesLen, bufferReadBytes.length);
+                    String broken = new String(brokenJson, StandardCharsets.UTF_8);
                     int brokenJsonLen = brokenJson.length;
                     offset = brokenJsonLen;
 
@@ -155,6 +160,8 @@ class ClientThread implements Runnable {
                     ByteBuffer sourceBuffer = ByteBuffer.wrap(brokenJson);
                     ByteBuffer destinationBuffer = ByteBuffer.wrap(buffer);
                     destinationBuffer.put(sourceBuffer);
+                    String bufferStr = new String(buffer, StandardCharsets.UTF_8);
+                    bufferStr = bufferStr;
                 }
                 else{
                     offset =0;

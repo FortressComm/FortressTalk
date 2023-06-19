@@ -4,6 +4,7 @@ from Client.ClientEncryptor import ClientEncryptor
 import json
 from base64 import b64encode, b64decode
 import os
+import uuid
 
 class Client:
 
@@ -24,19 +25,21 @@ class Client:
     def send(self, data: bytes):
         self.client_socket.sendall(data)
             
-    def file_transfer(self, file_path):
-        chunk_size = 256
+    def file_transfer(self, file_path, chat_id):
+        chunk_size = 10240
         file_size = str(os.path.getsize(file_path))
-        file_name = os.path.basename(file_path)
-        self.send_transfer_start(file_size, file_name)
+        file_name = str(uuid.uuid1()) + os.path.splitext(os.path.basename(file_path))[1]
+        self.send_transfer_start(file_size, file_name, chat_id)
+        chunk_number = 0
         with open(file_path, 'rb') as file:
             chunk = file.read(chunk_size)
           
             while chunk:
-                self.send_transfer_chunk(chunk)
+                self.send_transfer_chunk(chunk, str(chunk_number), chat_id)
+                chunk_number += 1
                 chunk = file.read(chunk_size)
         
-        self.send_transfer_end()
+        self.send_transfer_end(chat_id)
 
     def dict_to_json_bytes(self, dict):
         for key in dict:
@@ -106,22 +109,26 @@ class Client:
             'code': 'GET_CHATS',
         })
 
-    def send_transfer_start(self, expected_size, file_name):
+    def send_transfer_start(self, expected_size, file_name, chat_id):
         self.send_json_bytes({
             'code': 'START_SEND',
             'expected_size': expected_size,
             'file_name': file_name,
+            'chat_id': chat_id,
         })
 
-    def send_transfer_chunk(self, chunk):
+    def send_transfer_chunk(self, chunk, chunk_number, chat_id):
         self.send_json_bytes({
             'code': 'SEND',
             'chunk': chunk,
+            'chunk_number': chunk_number,
+            'chat_id': chat_id,
         })
 
-    def send_transfer_end(self):
+    def send_transfer_end(self, chat_id):
         self.send_json_bytes({
             'code': 'END_SEND',
+            'chat_id': chat_id,
         })
 
     def print_dict(dict):

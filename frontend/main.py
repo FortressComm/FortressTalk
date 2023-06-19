@@ -16,6 +16,7 @@ class Msg:
         self.content = content
         self.user_id_from = user_id_from
 
+
 class ChatApp:
     def __init__(self, root):
         self.root = root
@@ -25,7 +26,6 @@ class ChatApp:
         self.connect()
         self.init_view(root)
         self.root_settings()
-        
 
     def on_closing(self):
         self.client.stop_reciever()
@@ -33,7 +33,6 @@ class ChatApp:
 
     def root_settings(self):
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
-        
 
     def connect(self):
         self.client = Client("127.0.0.1", 65432, self)
@@ -66,11 +65,13 @@ class ChatApp:
         self.chat_name_label.grid(row=0, column=0, padx=10, pady=10)
 
         self.chat_name_var = tk.StringVar()
-        self.chat_name_dropdown = tk.OptionMenu(self.chat_frame, self.chat_name_var, None,*self.chats, command=self.on_chat_select)
+        self.chat_name_dropdown = tk.OptionMenu(self.chat_frame, self.chat_name_var, None, *self.chats,
+                                                command=self.on_chat_select)
         self.chat_name_dropdown.grid(row=0, column=1, padx=10, pady=10)
 
-        tk.Button(self.chat_frame, text="Copy chat_id", command=self.copy_chat_to_clipboard).grid(row=0, column=1, padx=0, pady=10, sticky="W")
-        
+        tk.Button(self.chat_frame, text="Copy chat_id", command=self.copy_chat_to_clipboard).grid(row=0, column=1,
+                                                                                                  padx=0, pady=10,
+                                                                                                  sticky="W")
 
         self.chat_area = tk.Text(self.chat_frame, width=40, height=16)
         self.chat_area.configure(state="disabled")  # Set text field as read-only
@@ -84,13 +85,17 @@ class ChatApp:
         self.entry = tk.Entry(self.chat_frame)
         self.entry.grid(row=2, column=0, padx=10, pady=10, sticky="EW")
 
-        tk.Button(self.chat_frame, text="Send", command=self.send_message).grid(row=2, column=1, padx=10, pady=10, sticky="W")
+        tk.Button(self.chat_frame, text="Send", command=self.send_message).grid(row=2, column=1, padx=10, pady=10,
+                                                                                sticky="W")
 
-        tk.Button(self.chat_frame, text="Create chat", command=self.create_chat).grid(row=2, column=1, padx=150, pady=10, sticky="W")
+        tk.Button(self.chat_frame, text="Create chat", command=self.create_chat).grid(row=2, column=1, padx=150,
+                                                                                      pady=10, sticky="W")
 
-        tk.Button(self.chat_frame, text="Attach File", command=self.attach_file).grid(row=2, column=1, padx=80, pady=10, sticky="W")
+        tk.Button(self.chat_frame, text="Attach File", command=self.attach_file).grid(row=2, column=1, padx=80, pady=10,
+                                                                                      sticky="W")
 
-        tk.Button(self.chat_frame, text="Join Chat", command=self.join_chat).grid(row=2, column=1, padx=220, pady=10, sticky="W")
+        tk.Button(self.chat_frame, text="Join Chat", command=self.join_chat).grid(row=2, column=1, padx=220, pady=10,
+                                                                                  sticky="W")
 
         # Create login page
         self.login_frame = tk.Frame(self.root, width=400, height=400)
@@ -151,7 +156,6 @@ class ChatApp:
         self.login_frame.pack_forget()
         self.register_frame.pack_forget()
         self.chat_frame.pack()
-        
 
     def login(self):
         username = self.login_entry.get()
@@ -169,7 +173,6 @@ class ChatApp:
         if username and password:
             self.current_user = username
             self.client.send_register(username, password)
-            
 
     def refresh_messages(self):
         self.chat_area.configure(state="normal")  # Set text field as editable temporarily
@@ -190,7 +193,7 @@ class ChatApp:
     def attach_file(self):
         file_path = filedialog.askopenfilename()
         if file_path:
-            self.client.file_transfer(file_path)
+            self.client.file_transfer(file_path, self.chat_name_var.get())
             chat_info = f"{self.current_user} ({self.chat_name_var.get()}) attached file: {file_path}"
             self.chat_area.configure(state="normal")  # Set text field as editable temporarily
             self.chat_area.insert(tk.END, chat_info + "\n")
@@ -221,17 +224,18 @@ class ChatApp:
 
     def update_options(self):
         new_options = self.chats  # New list of options
-        
+
         if not new_options:
             return
-        
+
         self.chat_name_var.set("")  # Clear the variable
         self.chat_name_dropdown['menu'].delete(0, 'end')  # Clear the existing options
-        
+
         for option in new_options:
-            self.chat_name_dropdown['menu'].add_command(label=option, command=tk._setit(self.chat_name_var, option, self.on_chat_select))
+            self.chat_name_dropdown['menu'].add_command(label=option, command=tk._setit(self.chat_name_var, option,
+                                                                                        self.on_chat_select))
             # Add the new options to the OptionMenu
-        
+
         self.chat_name_var.set(new_options[0])  # Set the default option
 
     def load_messages(self):
@@ -261,7 +265,7 @@ class ChatApp:
 
     def send_msg_response(self, data):
         pass
-    
+
     def all_mgs_response(self, dict):
         msgs = dict['messages']
         self.msgs = []
@@ -272,7 +276,7 @@ class ChatApp:
     def new_msg_response(self, dict):
         if dict['chat_id'] != self.chat_name_var.get():
             return
-        
+
         self.msgs.append(Msg(dict['text'], dict['other_user_id']))
         self.refresh_messages()
 
@@ -284,6 +288,7 @@ class ChatApp:
 
     def show_messagebox(self, title, content):
         messagebox.showinfo(title, content)
+
 
 def start_ui():
     root = tk.Tk()
@@ -298,7 +303,6 @@ def start_ui():
     root.mainloop()
 
 
-
 def main():
     # private_key, public_key = AsymCipher.gen_private_public_key()
     # AsymCipher.save_private_key(private_key,'1_private_key.pem', b'123')
@@ -307,9 +311,7 @@ def main():
     # private_key, public_key = AsymCipher.gen_private_public_key()
     # AsymCipher.save_private_key(private_key,'server_private_key.pem', b'321')
     # AsymCipher.save_public_key(public_key,'server_public_key.pem')
-    start_ui() 
-
-    
+    start_ui()
 
 
 if __name__ == '__main__':
