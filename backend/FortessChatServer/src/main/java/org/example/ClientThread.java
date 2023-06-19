@@ -37,6 +37,8 @@ class ClientThread implements Runnable {
 
     static final String GET_CHAT_MESSAGES = "GET_CHAT_MESSAGES";
 
+    static final String GET_FILE = "GET_FILE";
+
 
 
     ////////////////////////////////////////////////////////////
@@ -59,7 +61,8 @@ class ClientThread implements Runnable {
     static final String SERVER_FILE_PROGRESS = "SERVER_FILE_PROGRESS";
     static final String SERVER_CHUNK_SEND = "SERVER_CHUNK_SEND";
 
-    static final String SERVER_CHUNK_END = "SERVER_CHUNK_END";
+    static final String SERVER_END_SEND = "SERVER_END_SEND";
+    static final String SERVER_START_SEND = "SERVER_START_SEND";
 
     MessageServer messageServer;
    
@@ -69,7 +72,7 @@ class ClientThread implements Runnable {
 
     public OutputStream out;
     public InputStream in;
-    public FileManager fileManager;
+    public FileTransferSession fileTransferSession;
 
     private static List<byte[]> splitBytes(byte[] bytes) {
         List<byte[]> jsonBytesList = new ArrayList<>();
@@ -261,15 +264,29 @@ class ClientThread implements Runnable {
 
                     }
                     else if(code.equals(START_SEND)){
-                        fileManager = new FileManager(fileName, this, expectedSizeInBytes);
+                        if(isAuthorized) {
+                            fileTransferSession = new FileTransferSession(fileName, this, expectedSizeInBytes, chatId);
+                        }
+                        {
+                            sendNoAuthMessage();
+                        }
                     }
                     else if(code.equals(SEND)){
-                        Chunk chunk= new Chunk(chatId, chunkNumber,fileName,chunkBytes);
-                        fileManager.appendChunk(chunk);
-
+                        if(isAuthorized){
+                            Chunk chunk= new Chunk(chatId, chunkNumber,fileName,chunkBytes);
+                            fileTransferSession.appendChunk(chunk);
+                        }
+                        else{
+                            sendNoAuthMessage();
+                        }
                     }
                     else if(code.equals(END_SEND)){
-                        fileManager.close();
+                        if(isAuthorized) {
+                            fileTransferSession.close();
+                        }
+                        else{
+                            sendNoAuthMessage();
+                        }
                     }
                     else if(code.equals(REGISTER)){
                         if(!isAuthorized) {
@@ -331,8 +348,16 @@ class ClientThread implements Runnable {
                         else{
                             sendNoAuthMessage();
                         }
-                    }
-                    else {
+                    } else if (code.equals(GET_FILE)) {
+                        if(isAuthorized){
+                            FileTransferSession fileGetSession = new FileTransferSession(fileName,this, chatId);
+                            fileGetSession.sendChunksToMe();
+                        }
+                        else{
+                            sendNoAuthMessage();
+                        }
+
+                    } else {
 
                         unknownMessage(messageBytes);
                     }

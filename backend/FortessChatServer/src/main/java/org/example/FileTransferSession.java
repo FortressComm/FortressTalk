@@ -1,20 +1,31 @@
 package org.example;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 
 import static org.example.ClientThread.*;
 
-public class FileManager{
+public class FileTransferSession {
+    private String chatId;
     List<Chunk> chunkList;
-    String filename;
+    String fileName;
     long expectedSizeInBytes;
     ClientThread cT;
-    FileManager(String filename, ClientThread clientThread, long expectedSizeInBytes){
-        this.filename = filename;
+    FileTransferSession(String filename,ClientThread clientThread,String chatId){
+        this.fileName = filename;
+        this.cT = clientThread;
+        chunkList = new ArrayList<>();
+        this.chatId = chatId;
+    }
+    FileTransferSession(String filename,ClientThread clientThread, long expectedSizeInBytes,String chatId){
+        this.fileName = filename;
         this.expectedSizeInBytes = expectedSizeInBytes;
         this.cT = clientThread;
         chunkList = new ArrayList<>();
+        this.chatId = chatId;
     }
     public void appendChunk(Chunk chunk) {
         chunkList.add(chunk);
@@ -28,7 +39,7 @@ public class FileManager{
         FileOutputStream output = null;
         try {
 
-            output = new FileOutputStream(filename, true);
+            output = new FileOutputStream(fileName, true);
 
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
@@ -53,24 +64,44 @@ public class FileManager{
             appendChunkToFile(c.bytes);
         }
     }
-    public void sendChunks(){
+    public void sendChunksToMe(){
+        Path path = Paths.get(fileName);
+        try {
+            long fileSize = Files.size(path);
+            this.expectedSizeInBytes = fileSize;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        Frame frameStart = new Frame(SERVER_START_SEND, "I will send chunk to you");
+
+        frameStart.fileName = fileName;
+        cT.sendFrame( cT.user, cT.out, frameStart, cT.encryptor);
+
         FileInputStream is = null;
         try {
-            is = new FileInputStream(filename);
+            is = new FileInputStream(fileName);
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
         }
 
-        int chunkLen = 0;
-        try (FileInputStream fis = new FileInputStream(filename)) {
+
+        try (FileInputStream fis = new FileInputStream(fileName)) {
             byte[] chunk = new byte[1024];
+            int allBytesRead = 0;
             int bytesRead;
             while ((bytesRead = fis.read(chunk)) != -1) {
                 Frame frame = new Frame(SERVER_CHUNK_SEND, "chunk sent");
                 frame.chunk = chunk;
+                frame.chatId = chatId;
+                frame.fileName = fileName;
                 cT.sendFrame( cT.user, cT.out, frame, cT.encryptor);
+                allBytesRead+=bytesRead;
+                cT.sendFileProgress((allBytesRead*100)/expectedSizeInBytes);
+
             }
-            Frame frameEnd = new Frame(SERVER_CHUNK_END, "final chunk was sent enjoy");
+            Frame frameEnd = new Frame(SERVER_END_SEND, "final chunk was sent enjoy");
+            frameEnd.fileName = fileName;
             cT.sendFrame( cT.user, cT.out, frameEnd, cT.encryptor);
         } catch (IOException e) {
             e.printStackTrace();

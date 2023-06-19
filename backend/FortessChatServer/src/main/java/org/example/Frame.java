@@ -18,6 +18,7 @@ public class Frame {
     String cbcKey=null;
     String initVector=null;
     String otherUserId;
+    String fileName;
     List<Message> messages;
     List<Chat> chats;
     PublicPrivateKeyImp pk;
@@ -61,6 +62,13 @@ public class Frame {
         if(chatId!=null){
             try {
                 json.put("chat_id", encryptor.encrypt(chatId));
+            } catch (JSONException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        if(fileName!=null){
+            try {
+                json.put("file_name", encryptor.encrypt(fileName));
             } catch (JSONException e) {
                 throw new RuntimeException(e);
             }
