@@ -130,9 +130,7 @@ public final class PublicPrivateKeyImp implements Encryptor {
         }
         byte[] decryptedMessageBytes;
         try {
-            //System.out.println("String length" + message.length());
             byte messageBytes [] = Base64.getDecoder().decode(message);
-            System.out.println("Bytes length: " + messageBytes.length);
             decryptedMessageBytes = decryptCipher.doFinal(messageBytes);
 
         } catch (IllegalBlockSizeException e) {
@@ -188,9 +186,7 @@ public final class PublicPrivateKeyImp implements Encryptor {
         }
         byte[] decryptedMessageBytes;
         try {
-            System.out.println("String length" + message.length());
             byte messageBytes [] = Base64.getDecoder().decode(message);
-            System.out.println("Bytes length: " + messageBytes.length);
             decryptedMessageBytes = decryptCipher.doFinal(messageBytes);
 
         } catch (IllegalBlockSizeException e) {

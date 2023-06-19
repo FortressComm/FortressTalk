@@ -77,8 +77,12 @@ class ClientThread implements Runnable {
         int nestingLevel = 0;
 
         for (int i = 0; i < bytes.length; i++) {
+            if (nestingLevel < 0){
+                throw new RuntimeException("minus");
+            }
             if (bytes[i] == '{') {
                 nestingLevel++;
+
             } else if (bytes[i] == '}') {
                 nestingLevel--;
                 if (nestingLevel == 0) {
@@ -132,13 +136,15 @@ class ClientThread implements Runnable {
         int offset = 0;
         while (true) {
             try {
-                if (!((bytesRead = in.read(buffer,offset,buffer.length)) >= 0)) break;
+                if ((bytesRead = in.read(buffer, offset, 100000 - offset)) < 0) {
+                    break;
+                }
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
             if (bytesRead > 0) {
-                var bufferReadBytes = Arrays.copyOfRange(buffer, 0, bytesRead);
-
+                var bufferReadBytes = Arrays.copyOfRange(buffer, 0, bytesRead + offset);
+                String bufferReadBytesStr = new String(bufferReadBytes, StandardCharsets.UTF_8);
 
                 List<byte[]> splitedBytes =splitBytes(bufferReadBytes);
                 int normalBytesLen = getTotalBytesLength(splitedBytes);
@@ -146,6 +152,7 @@ class ClientThread implements Runnable {
                 if(normalBytesLen != bufferReadBytes.length){
 
                     byte brokenJson[] = Arrays.copyOfRange(bufferReadBytes, normalBytesLen, bufferReadBytes.length);
+                    String broken = new String(brokenJson, StandardCharsets.UTF_8);
                     int brokenJsonLen = brokenJson.length;
                     offset = brokenJsonLen;
 
@@ -153,6 +160,8 @@ class ClientThread implements Runnable {
                     ByteBuffer sourceBuffer = ByteBuffer.wrap(brokenJson);
                     ByteBuffer destinationBuffer = ByteBuffer.wrap(buffer);
                     destinationBuffer.put(sourceBuffer);
+                    String bufferStr = new String(buffer, StandardCharsets.UTF_8);
+                    bufferStr = bufferStr;
                 }
                 else{
                     offset =0;
@@ -190,11 +199,9 @@ class ClientThread implements Runnable {
                                 byte[] initVector =new byte[]{};
                                 if(json.has("key")){
                                     cbcKey = pkpk.decrypt(json.getString("key").getBytes());
-                                    System.out.println(cbcKey);
                                 }
                                 if(json.has("iv")){
                                     initVector = pkpk.decrypt(json.getString("iv").getBytes());
-                                    System.out.println("iv: " + initVector);
                                 }
                                 encryptor = new CbcEncryptor(cbcKey, initVector);
                             }
@@ -220,7 +227,6 @@ class ClientThread implements Runnable {
                         }
                         if(json.has("login")) {
                             login = encryptor.decrypt(String.valueOf(json.getString("login")));
-                            System.out.println(login);
 
                         }
                         if(json.has("password")) {
@@ -232,7 +238,6 @@ class ClientThread implements Runnable {
                         }
                         if(json.has("client_public_key")){
                             clientPublicKey = encryptor.decrypt(String.valueOf(json.getString("client_public_key")));
-                            System.out.println(clientPublicKey);
                         }
                         if(json.has("code")) {
                             code = encryptor.decrypt(String.valueOf(json.getString("code")));
@@ -461,7 +466,6 @@ class ClientThread implements Runnable {
     private void joinChat(String chatId) {
 
         Optional<Chat> c = getChatById(chatId);
-        System.out.print(chatId);
         for(var chat : messageServer.chats){
             System.out.println("Other chats" + chat.getId());
         }
